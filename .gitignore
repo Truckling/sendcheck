@@ -9,5 +9,5 @@ ml/*.pkl
 scripts/emails.jsonl
 scripts/token*.json
 scripts/report.txt
-scripts/credentials.json
+scripts/credentials*.json
 scripts/client_secret*.json

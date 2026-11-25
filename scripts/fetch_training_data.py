@@ -40,10 +40,17 @@ OUTPUT_FILE = Path(__file__).parent / "emails.jsonl"
 def get_gmail_service(account: str = "default"):
     """Authenticate and return a Gmail API client.
 
-    Each account name gets its own token file so multiple inboxes
-    can be connected without re-authenticating each other.
+    Each account gets its own token file (token_{account}.json).
+    If credentials_{account}.json exists it uses that OAuth app,
+    otherwise falls back to the default credentials.json.
     """
-    token_file = Path(__file__).parent / f"token_{account}.json"
+    scripts_dir = Path(__file__).parent
+    token_file = scripts_dir / f"token_{account}.json"
+    # Use account-specific credentials if available, otherwise share the default app
+    creds_file = scripts_dir / f"credentials_{account}.json"
+    if not creds_file.exists():
+        creds_file = CREDS_FILE
+
     creds = None
     if token_file.exists():
         creds = Credentials.from_authorized_user_file(str(token_file), SCOPES)
@@ -51,7 +58,7 @@ def get_gmail_service(account: str = "default"):
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(CREDS_FILE, SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file(str(creds_file), SCOPES)
             creds = flow.run_local_server(port=0)
         token_file.write_text(creds.to_json())
     return build("gmail", "v1", credentials=creds)

@@ -19,10 +19,10 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import os
 import sys
-import uuid
 from collections import Counter
 from pathlib import Path
 
@@ -57,19 +57,21 @@ HARSHAL_MAP = {
 }
 
 JASON_MAP = {
-    "Promotions":   "marketing",
-    "Forum":        "marketing",        # community newsletters are commercial
-    "Updates":      "transactional",    # service/account updates
-    "Verify Code":  "transactional",    # OTP/auth emails
-    "Social Media": "unclear",          # social notifications
-    "Spam":         None,               # skip — spam is out of scope
+    "promotions":   "marketing",
+    "forum":        "marketing",        # community newsletters are commercial
+    "updates":      "transactional",    # service/account updates
+    "verify_code":  "transactional",    # OTP/auth emails
+    "social_media": "unclear",          # social notifications
+    "spam":         None,               # skip — spam is out of scope
 }
 
 
 def make_entry(source_name, original_label, mapped_label, subject, body):
     """Create an emails.jsonl entry matching the format from fetch_training_data.py."""
+    # Deterministic ID so re-runs don't create duplicates
+    fingerprint = hashlib.sha256(f"{source_name}|{original_label}|{subject}|{body}".encode()).hexdigest()[:16]
     return {
-        "id": f"hf:{source_name}:{uuid.uuid4()}",
+        "id": f"hf:{source_name}:{fingerprint}",
         "subject": subject or "",
         "sender": "",
         "body_snippet": (body or "")[:500],
