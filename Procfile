@@ -1,1 +1,1 @@
-web: sendcheck --transport http
+web: pip install -e . --quiet && sendcheck --transport http
