@@ -15,6 +15,7 @@ import base64
 import json
 import re
 import sys
+import time
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -120,6 +121,9 @@ def main():
             if msg["id"] in existing_ids:
                 skipped += 1
                 continue
+
+            # Small delay to stay within Gmail API rate limits (250 units/sec)
+            time.sleep(0.5)
 
             full = service.users().messages().get(
                 userId="me", id=msg["id"], format="full"

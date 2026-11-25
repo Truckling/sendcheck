@@ -26,6 +26,25 @@ LOGIN_WALL_PATTERNS = [
     r'(unsubscribe|opt.out).{0,80}(log in|sign in|login|signin)',
 ]
 
+# Newsletter/editorial signals — strong indicators an email is commercial
+# even when it contains no obvious promotional language.
+# Applies to news digests, sports roundups, recipe emails, etc.
+NEWSLETTER_PATTERNS = [
+    r'\b(newsletter|briefing|morning briefing|morning update|news update|daily update|weekly update)\b',
+    r'\b(top stories|breaking news|latest news|live updates|round.?up|this week|this month)\b',
+    r'\b(view online|view in browser|view this email|having trouble reading|read online)\b',
+    r'\b(subscribe|subscription|edition|issue|digest)\b',
+    r'\bpowered by\b',
+    # Catches Fox Sports Sportsmail emails — these have almost no body text
+    # other than this brand word and CSS boilerplate
+    r'\bsportsmail\b',
+    # Catches live sports alerts and breaking news dispatches
+    r'\b(live free agency|live trade|live scores|live blog)\b',
+    # Catches breaking news alerts where the body is nearly empty —
+    # the subject line is the only signal
+    r'\bBREAKING\b',
+]
+
 
 def _matches_any(text: str, patterns: list[str]) -> bool:
     """Return True if any pattern matches the text (case-insensitive)."""
@@ -48,22 +67,27 @@ def classify_message(subject: str, body: str, channel: str = "email") -> dict:
 
     promotional = _matches_any(combined, PROMOTIONAL_PATTERNS)
     transactional = _matches_any(combined, TRANSACTIONAL_PATTERNS)
+    newsletter = _matches_any(combined, NEWSLETTER_PATTERNS)
 
     if promotional:
         reasons.append("Promotional language detected (e.g. sale, discount, offer).")
     if transactional:
         reasons.append("Transactional language detected (e.g. order, confirmation, invoice).")
+    if newsletter and not transactional:
+        reasons.append("Editorial newsletter signals detected (e.g. briefing, view online, subscribe).")
 
     if transactional and promotional:
         msg_type = "transactional_with_promotion"
         reasons.append("Both transactional and promotional content found — treated as commercial.")
     elif transactional:
         msg_type = "transactional"
-    elif promotional:
+    elif promotional or newsletter:
+        # Newsletters are treated as marketing — they're commercial communications
+        # under the Spam Act even when the content is editorial
         msg_type = "marketing"
     else:
         msg_type = "unclear"
-        reasons.append("No clear promotional or transactional signals found.")
+        reasons.append("No clear promotional, transactional, or newsletter signals found.")
 
     return {"type": msg_type, "reasons": reasons}
 
