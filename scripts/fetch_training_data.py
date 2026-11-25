@@ -2,9 +2,13 @@
 fetch_training_data.py — Fetch emails from Gmail and save them as labelled training data.
 
 Usage:
-    python fetch_training_data.py               # fetch 500 emails from INBOX
-    python fetch_training_data.py --max 1000    # fetch more
-    python fetch_training_data.py --append      # append to existing emails.jsonl
+    python fetch_training_data.py                        # fetch 500 emails from first inbox
+    python fetch_training_data.py --account work         # fetch from a second inbox
+    python fetch_training_data.py --account work --max 1000 --append
+
+Each --account uses its own token file (token_work.json) so you can connect
+multiple Gmail inboxes without re-authenticating the first one.
+Add each account's email address as a test user in Google Cloud Console first.
 
 The pattern-based classifier generates a draft label for each email.
 Run label.py next to review and correct the "unclear" ones.
@@ -30,21 +34,26 @@ from sendcheck.checker import classify_message
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 CREDS_FILE = Path(__file__).parent / "credentials.json"
-TOKEN_FILE = Path(__file__).parent / "token.json"
 OUTPUT_FILE = Path(__file__).parent / "emails.jsonl"
 
 
-def get_gmail_service():
+def get_gmail_service(account: str = "default"):
+    """Authenticate and return a Gmail API client.
+
+    Each account name gets its own token file so multiple inboxes
+    can be connected without re-authenticating each other.
+    """
+    token_file = Path(__file__).parent / f"token_{account}.json"
     creds = None
-    if TOKEN_FILE.exists():
-        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+    if token_file.exists():
+        creds = Credentials.from_authorized_user_file(str(token_file), SCOPES)
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(CREDS_FILE, SCOPES)
             creds = flow.run_local_server(port=0)
-        TOKEN_FILE.write_text(creds.to_json())
+        token_file.write_text(creds.to_json())
     return build("gmail", "v1", credentials=creds)
 
 
@@ -98,9 +107,14 @@ def main():
     parser.add_argument("--max", type=int, default=500)
     parser.add_argument("--label", default="INBOX")
     parser.add_argument("--append", action="store_true", help="Append to existing emails.jsonl")
+    parser.add_argument("--account", default="default",
+                        help="Account name for token file (e.g. 'work' uses token_work.json)")
     args = parser.parse_args()
 
-    service = get_gmail_service()
+    if args.account != "default":
+        print(f"Using account: {args.account} (token_{ args.account}.json)")
+
+    service = get_gmail_service(args.account)
 
     existing_ids = load_existing_ids() if args.append else set()
     if not args.append and OUTPUT_FILE.exists():
@@ -122,12 +136,26 @@ def main():
                 skipped += 1
                 continue
 
-            # Small delay to stay within Gmail API rate limits (250 units/sec)
+            # Small delay to stay within Gmail API rate limits
             time.sleep(0.5)
 
-            full = service.users().messages().get(
-                userId="me", id=msg["id"], format="full"
-            ).execute()
+            # Retry with backoff on rate limit errors
+            for attempt in range(4):
+                try:
+                    full = service.users().messages().get(
+                        userId="me", id=msg["id"], format="full"
+                    ).execute()
+                    break
+                except Exception as e:
+                    if "quota" in str(e).lower() or "429" in str(e) or "403" in str(e):
+                        wait = 60 * (attempt + 1)
+                        print(f"  Rate limit hit — waiting {wait}s before retrying...")
+                        time.sleep(wait)
+                    else:
+                        raise
+            else:
+                print(f"  Skipping message {msg['id']} after 4 failed attempts.")
+                continue
 
             headers = full.get("payload", {}).get("headers", [])
             subject = get_header(headers, "subject") or "(no subject)"
