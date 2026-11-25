@@ -3,6 +3,7 @@
 
 import re
 from .rules import get_rule, RULESET_VERSION
+from . import ml_classifier
 
 # --- Pattern lists ---
 
@@ -91,7 +92,18 @@ def check_message(
       - ruleset_version: version string for the rule set used
     """
     findings = []
-    classification = classify_message(subject, body, channel)
+
+    # Use the ML model if one has been trained, otherwise fall back to patterns
+    ml_result = ml_classifier.classify(subject, body)
+    if ml_result:
+        classification = {
+            "type": ml_result["type"],
+            "reasons": [f"ML classifier (confidence {ml_result['confidence']:.0%})."],
+            "source": "ml",
+        }
+    else:
+        classification = classify_message(subject, body, channel)
+
     msg_type = classification["type"]
 
     # A message is "commercial" under the Spam Act if it's marketing,

@@ -69,11 +69,14 @@ def decode_body(payload):
             if data:
                 body += base64.urlsafe_b64decode(data).decode("utf-8", errors="replace")
         elif mime == "text/html" and not body:
-            # Fall back to HTML if no plain text — strip tags crudely
+            # Fall back to HTML if no plain text
             data = part.get("body", {}).get("data", "")
             if data:
                 html = base64.urlsafe_b64decode(data).decode("utf-8", errors="replace")
-                body += re.sub(r"<[^>]+>", " ", html)
+                # Pull href values out first — unsubscribe links often live in href
+                # attributes with generic link text like "click here"
+                hrefs = " ".join(re.findall(r'href=["\']([^"\']+)["\']', html, re.I))
+                body += re.sub(r"<[^>]+>", " ", html) + " " + hrefs
         for sub in part.get("parts", []):
             extract(sub)
 
