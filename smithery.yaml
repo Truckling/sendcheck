@@ -1,0 +1,11 @@
+name: sendcheck
+description: Pre-send compliance checker for Australian email and SMS. Checks messages against the Spam Act 2003 — consent, sender ID, unsubscribe, and transactional-with-promotion rules.
+license: MIT
+
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties: {}
+  commandFunction: |-
+    () => ({ command: "sendcheck", args: [] })
