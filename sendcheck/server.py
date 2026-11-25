@@ -1,15 +1,27 @@
 # server.py — MCP server entry point for SendCheck
-# Exposes compliance tools to any MCP-compatible client (e.g. Claude Desktop).
+# Supports both local stdio transport (Claude Desktop / Claude Code)
+# and remote streamable-http transport (hosted deployment).
+#
+# Local:  sendcheck                           (stdio, default)
+# Hosted: sendcheck --transport http          (streamable-http on $PORT)
 
-from mcp.server.fastmcp import FastMCP
+import os
+import argparse
+from mcp.server.mcpserver import MCPServer
+from mcp.types import ToolAnnotations
 from .checker import check_message as _check, classify_message as _classify
 from .evidence import record_check, get_evidence as _get_evidence
 from .rules import RULES, RULESET_VERSION, get_rule
 
-mcp = FastMCP("sendcheck")
+mcp = MCPServer("sendcheck")
+
+_read_only = ToolAnnotations(read_only_hint=True, destructive_hint=False)
 
 
-@mcp.tool()
+@mcp.tool(
+    title="Check message compliance",
+    annotations=_read_only,
+)
 def check_message(
     subject: str,
     body: str,
@@ -44,21 +56,27 @@ def check_message(
     return result
 
 
-@mcp.tool()
+@mcp.tool(
+    title="Classify message type",
+    annotations=_read_only,
+)
 def classify_message(subject: str, body: str, channel: str = "email") -> dict:
     """
     Classify a message as marketing, transactional, transactional_with_promotion, or unclear.
 
-    Useful for understanding how the Spam Act will treat your message before running
+    Useful for understanding how the law will treat your message before running
     the full compliance check.
     """
     return _classify(subject, body, channel)
 
 
-@mcp.tool()
+@mcp.tool(
+    title="Explain a compliance rule",
+    annotations=_read_only,
+)
 def explain_rule(rule_id: str) -> dict:
     """
-    Look up a specific Spam Act rule by its ID.
+    Look up a specific compliance rule by its ID.
 
     Returns the rule description, the law section it comes from, and how to fix it.
     Call list_rules() first to see all valid rule IDs.
@@ -72,17 +90,24 @@ def explain_rule(rule_id: str) -> dict:
     return rule
 
 
-@mcp.tool()
+@mcp.tool(
+    title="List all compliance rules",
+    annotations=_read_only,
+)
 def list_rules() -> dict:
     """
-    Return all Spam Act compliance rules known to SendCheck.
+    Return all compliance rules known to SendCheck.
 
-    Includes rule IDs, severity levels, law sections, and fix guidance.
+    Covers Spam Act 2003 (AU), CAN-SPAM (US), CASL (CA), and GDPR/ePrivacy (EU).
+    Includes rule IDs, severity levels, law sections, jurisdiction tags, and fix guidance.
     """
     return {"ruleset_version": RULESET_VERSION, "rules": RULES}
 
 
-@mcp.tool()
+@mcp.tool(
+    title="Retrieve evidence records",
+    annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False),
+)
 def get_evidence(check_id: str = "", campaign_id: str = "", limit: int = 20) -> list:
     """
     Retrieve past compliance check records from the evidence log.
@@ -94,4 +119,17 @@ def get_evidence(check_id: str = "", campaign_id: str = "", limit: int = 20) -> 
 
 
 def main():
-    mcp.run()
+    parser = argparse.ArgumentParser(description="SendCheck MCP server")
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "http"],
+        default="stdio",
+        help="Transport mode: stdio (local) or http (hosted, reads $PORT)",
+    )
+    args, _ = parser.parse_known_args()
+
+    if args.transport == "http":
+        port = int(os.environ.get("PORT", 8000))
+        mcp.run(transport="streamable-http", host="0.0.0.0", port=port)
+    else:
+        mcp.run(transport="stdio")

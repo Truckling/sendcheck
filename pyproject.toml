@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sendcheck"
-version = "0.2.3"
-description = "Pre-send compliance checks for Australian email and SMS (Spam Act 2003)"
+version = "0.3.0"
+description = "Pre-send compliance checks for email and SMS — Spam Act (AU), CAN-SPAM (US), CASL (CA), GDPR (EU)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
     {name = "Truckling"}
 ]
-keywords = ["mcp", "email", "compliance", "spam-act", "australia", "marketing"]
+keywords = ["mcp", "email", "compliance", "spam-act", "australia", "can-spam", "casl", "gdpr", "marketing"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -21,7 +21,8 @@ classifiers = [
     "Topic :: Office/Business",
 ]
 dependencies = [
-    "mcp>=1.0.0",
+    "mcp>=2.0.0",
+    "uvicorn>=0.30.0",
 ]
 
 [project.urls]

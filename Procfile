@@ -1,0 +1,1 @@
+web: sendcheck --transport http
