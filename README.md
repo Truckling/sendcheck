@@ -1,20 +1,34 @@
 # SendCheck
 
-Pre-send compliance checker for Australian email and SMS. Checks messages against the Spam Act 2003 before you send them.
+Pre-send compliance checker for email and SMS. Checks messages against four major laws before you send them — returns a verdict, findings, and fixes.
 
-Works as an MCP server — add it to Claude and ask it to check your emails in plain English.
+Works as an MCP server. Add it to Claude and ask it to check your emails in plain English.
+
+## Laws covered
+
+| Law | Region | Channel |
+|-----|--------|---------|
+| Spam Act 2003 | Australia | Email + SMS |
+| CAN-SPAM Act | United States | Email |
+| CASL | Canada | Email + SMS |
+| GDPR / ePrivacy Directive | European Union | Email + SMS |
+| TCPA | United States | SMS |
 
 ## What it checks
 
-| Rule | Law | Severity |
-|------|-----|----------|
-| Consent missing or unknown | s16 Spam Act | Block |
-| Inferred consent risk | s16 Spam Act | Review |
-| Sender not identified | s17 Spam Act | Block |
-| No unsubscribe mechanism | s18 Spam Act | Block |
-| Unsubscribe requires login | s18 Spam Act | Review |
-| Transactional email with promotional content | s6 Spam Act | Review |
-| SMS alphanumeric sender ID unregistered | ACMA 2026 | Info |
+| Rule | Laws | Severity |
+|------|------|----------|
+| Consent missing (opt-in required) | Spam Act, CASL, GDPR | Block |
+| Opt-out not confirmed | CAN-SPAM | Review |
+| Inferred/implied consent risk | Spam Act, CASL | Review |
+| Sender not identified | All four laws | Block |
+| No unsubscribe mechanism | All four laws | Block |
+| Unsubscribe requires login | Spam Act, CASL, GDPR | Review |
+| Physical mailing address missing | CAN-SPAM, CASL | Block |
+| Transactional email with promotional content | Spam Act, CAN-SPAM, CASL | Review |
+| SMS alphanumeric sender ID unregistered | ACMA (AU, from Jul 2026) | Info |
+| SMS prior written consent missing | TCPA (US) | Block |
+| SMS opt-in consent missing | ePrivacy (EU) | Block |
 
 ## Add to Claude
 
@@ -48,36 +62,48 @@ Requires Python 3.10+.
 
 Once added, ask Claude to check an email:
 
-> "Check this email for Spam Act compliance. We have express consent from subscribers who opted in via our website."
+> "Check this email for compliance. We have express consent from subscribers who opted in via our website."
 
-Or paste in a draft:
+Specify a jurisdiction if you know your audience:
 
-> "Is this transactional email okay to send? It includes a discount offer at the bottom."
+> "Check this email against Australian law only."
 
-Claude will call SendCheck and return a verdict — **pass**, **review**, or **block** — with findings and fixes.
+Or check all jurisdictions at once (the default):
+
+> "Check this email — our list includes US, Canadian, and Australian subscribers."
+
+Claude will call SendCheck and return a verdict — **pass**, **review**, or **block** — with findings tagged to the specific law they come from.
 
 ## Tools
 
 | Tool | What it does |
 |------|-------------|
-| `check_message` | Full compliance check — returns verdict, findings, and check ID |
+| `check_message` | Full compliance check — verdict, findings tagged by law, check ID |
 | `classify_message` | Classify as marketing / transactional / transactional_with_promotion / unclear |
 | `explain_rule` | Look up a specific rule by ID |
-| `list_rules` | Return all rules with severity and fix guidance |
+| `list_rules` | Return all rules with severity, jurisdiction, and fix guidance |
 | `get_evidence` | Retrieve past check records from the local evidence log |
 
-## Consent values
+## Parameters
 
-Pass one of these when calling `check_message`:
+**`check_message` accepts:**
 
-- `express` — subscriber opted in via a form or checkbox
-- `inferred` — existing customer relationship, no explicit opt-in
-- `none` — no consent on record
-- `unknown` — not specified (treated as none)
+| Parameter | Values | Default |
+|-----------|--------|---------|
+| `channel` | `email`, `sms` | `email` |
+| `consent` | `express`, `inferred`, `none`, `unknown` | `unknown` |
+| `sender_identified` | `true`, `false` | `false` |
+| `jurisdiction` | `au`, `us`, `ca`, `eu`, `all` | `all` |
+
+**Consent by jurisdiction:**
+- AU / CA / EU: opt-in required — `none` or `unknown` blocks the send
+- US CAN-SPAM: opt-out model — prior consent not required, but opt-outs must be honoured
 
 ## Background
 
-The Spam Act 2003 applies to all commercial electronic messages sent to Australian addresses. ACMA has issued fines over $7M for consent failures and $700K for transactional emails that included promotional content. SendCheck is a pre-send tool, not legal advice.
+Email and SMS marketing is regulated everywhere. ACMA (Australia) has issued fines over $7M for consent failures and $700K for transactional emails containing promotional content. The FTC enforces CAN-SPAM with fines up to $51,744 per email. CRTC enforces CASL with penalties up to $10M per violation.
+
+SendCheck is a pre-send compliance tool, not legal advice.
 
 ## License
 
