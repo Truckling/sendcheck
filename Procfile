@@ -1,1 +1,1 @@
-web: pip install -e . --quiet && sendcheck --transport http
+web: python start.py
