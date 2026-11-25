@@ -101,7 +101,7 @@ Claude will call SendCheck and return a verdict — **pass**, **review**, or **b
 
 ## Background
 
-Email and SMS marketing is regulated everywhere. ACMA (Australia) has issued fines over AU$7M for consent failures and AU$700K for transactional emails containing promotional content. The FTC enforces CAN-SPAM with fines up to USD 51,744 per email. CRTC enforces CASL with penalties up to CAD 10M per violation.
+Email and SMS marketing is regulated everywhere. ACMA (Australia) has issued fines over 7 million AUD for consent failures and 700K AUD for transactional emails containing promotional content. The FTC enforces CAN-SPAM with fines up to 51,744 USD per email. CRTC enforces CASL with penalties up to 10 million CAD per violation.
 
 SendCheck is a pre-send compliance tool, not legal advice.
 
