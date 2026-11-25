@@ -17,7 +17,10 @@ TRANSACTIONAL_PATTERNS = [
 ]
 
 UNSUBSCRIBE_PATTERNS = [
-    r'\b(unsubscribe|opt.out|manage (preferences|subscriptions)|stop receiving)\b',
+    # No word boundaries on unsubscribe — ESP footers often concatenate links
+    # into a single string like "PreferencesUnsubscribePrivacy"
+    r'unsubscribe',
+    r'\b(opt.out|manage (preferences|subscriptions)|stop receiving)\b',
     r'https?://\S*(unsub|optout|opt.out)\S*',
 ]
 

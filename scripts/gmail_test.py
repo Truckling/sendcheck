@@ -129,8 +129,8 @@ def run_checks(emails):
             channel="email",
             # We don't know consent status from the inbox — flag as unknown
             consent="unknown",
-            # We can check if sender info appears in the body
-            sender_identified=bool(re.search(r"(@|\+61|\.com\.au|pty ltd|abn)", body, re.I)),
+            # Check if sender is identifiable from the From header or body
+            sender_identified=bool(re.search(r"(@|\+61|\.com\.au|pty ltd|abn)", sender + " " + body, re.I)),
         )
         results.append({
             "subject": subject,
