@@ -18,14 +18,27 @@ def check_message(
     sender_identified: bool = False,
     recipient: str = "",
     campaign_id: str = "",
+    jurisdiction: str = "all",
 ) -> dict:
     """
-    Run Spam Act 2003 compliance checks on an email or SMS before sending.
+    Run email/SMS compliance checks before sending.
 
-    Returns a verdict (pass/review/block), a list of findings with fixes,
+    Checks against: Spam Act 2003 (AU), CAN-SPAM (US), CASL (CA), GDPR/ePrivacy (EU).
+
+    Parameters:
+      subject           — message subject line
+      body              — full message body text
+      channel           — "email" or "sms"
+      consent           — "express", "inferred", "none", or "unknown"
+      sender_identified — True if the sender is clearly named in the message
+      recipient         — recipient address (for evidence log only, never stored in full)
+      campaign_id       — optional campaign reference for grouping evidence records
+      jurisdiction      — "au", "us", "ca", "eu", or "all" (default: all — strictest)
+
+    Returns a verdict (pass/review/block), findings with fixes tagged by law,
     the message classification, and a check_id for your evidence log.
     """
-    result = _check(subject, body, channel, consent, sender_identified)
+    result = _check(subject, body, channel, consent, sender_identified, jurisdiction)
     check_id = record_check(subject, body, recipient, result, campaign_id)
     result["check_id"] = check_id
     return result

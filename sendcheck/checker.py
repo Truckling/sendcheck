@@ -1,8 +1,9 @@
 # checker.py — Pattern-based message compliance checking
-# Classifies messages and checks them against Spam Act 2003 rules.
+# Classifies messages and checks them against email/SMS laws:
+#   Spam Act 2003 (AU), CAN-SPAM (US), CASL (CA), GDPR/ePrivacy (EU)
 
 import re
-from .rules import get_rule, RULESET_VERSION
+from .rules import get_rule, RULESET_VERSION, rules_for_jurisdiction
 from . import ml_classifier
 
 # --- Pattern lists ---
@@ -31,21 +32,31 @@ LOGIN_WALL_PATTERNS = [
 
 # Newsletter/editorial signals — strong indicators an email is commercial
 # even when it contains no obvious promotional language.
-# Applies to news digests, sports roundups, recipe emails, etc.
 NEWSLETTER_PATTERNS = [
     r'\b(newsletter|briefing|morning briefing|morning update|news update|daily update|weekly update)\b',
     r'\b(top stories|breaking news|latest news|live updates|round.?up|this week|this month)\b',
     r'\b(view online|view in browser|view this email|having trouble reading|read online)\b',
     r'\b(subscribe|subscription|edition|issue|digest)\b',
     r'\bpowered by\b',
-    # Catches Fox Sports Sportsmail emails — these have almost no body text
-    # other than this brand word and CSS boilerplate
     r'\bsportsmail\b',
-    # Catches live sports alerts and breaking news dispatches
     r'\b(live free agency|live trade|live scores|live blog)\b',
-    # Catches breaking news alerts where the body is nearly empty —
-    # the subject line is the only signal
     r'\bBREAKING\b',
+]
+
+# Physical address patterns — required by CAN-SPAM and CASL in email footers
+PHYSICAL_ADDRESS_PATTERNS = [
+    # Street address: number + street name + type
+    r'\b\d+\s+\w[\w\s]{1,30}(street|st|avenue|ave|road|rd|boulevard|blvd|drive|dr|lane|ln|way|place|pl|court|ct|suite|ste)\b',
+    # PO Box
+    r'\bp\.?\s*o\.?\s*box\s+\d+\b',
+    # US ZIP code in context (5 digits, optionally +4)
+    r'\b[A-Z]{2}\s+\d{5}(-\d{4})?\b',
+    # Canadian postal code
+    r'\b[A-Z]\d[A-Z]\s*\d[A-Z]\d\b',
+    # Australian postcode in context (4 digits after state abbreviation or city)
+    r'\b(NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\s+\d{4}\b',
+    # UK postcode
+    r'\b[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}\b',
 ]
 
 
@@ -85,8 +96,6 @@ def classify_message(subject: str, body: str, channel: str = "email") -> dict:
     elif transactional:
         msg_type = "transactional"
     elif promotional or newsletter:
-        # Newsletters are treated as marketing — they're commercial communications
-        # under the Spam Act even when the content is editorial
         msg_type = "marketing"
     else:
         msg_type = "unclear"
@@ -101,9 +110,10 @@ def check_message(
     channel: str = "email",
     consent: str = "unknown",
     sender_identified: bool = False,
+    jurisdiction: str = "all",
 ) -> dict:
     """
-    Run Spam Act 2003 compliance checks on a message.
+    Run compliance checks on a message against one or more jurisdictions.
 
     Parameters:
       subject           — the message subject line
@@ -111,16 +121,17 @@ def check_message(
       channel           — "email" or "sms"
       consent           — "express", "inferred", "none", or "unknown"
       sender_identified — True if the message clearly names the sender
+      jurisdiction      — "au", "us", "ca", "eu", or "all" (default: "all")
 
     Returns a dict with:
       - verdict: "pass", "review", or "block"
-      - findings: list of rule violations found
+      - findings: list of rule violations, each tagged with jurisdiction
       - classification: output of classify_message()
-      - ruleset_version: version string for the rule set used
+      - ruleset_version: version string
     """
     findings = []
 
-    # Use the ML model if one has been trained, otherwise fall back to patterns
+    # Use ML model if trained, otherwise fall back to patterns
     ml_result = ml_classifier.classify(subject, body)
     if ml_result:
         classification = {
@@ -133,57 +144,88 @@ def check_message(
 
     msg_type = classification["type"]
 
-    # A message is "commercial" under the Spam Act if it's marketing,
-    # a transactional message with promotional content, or we can't tell.
+    # Commercial under any law = marketing, transactional_with_promotion, or unclear
     is_commercial = msg_type in ("marketing", "transactional_with_promotion", "unclear")
+
+    # Which jurisdictions to check
+    if jurisdiction == "all":
+        active = ["au", "us", "ca", "eu"]
+    else:
+        active = [jurisdiction]
 
     def add_finding(rule_id: str, trigger: str):
         rule = get_rule(rule_id)
+        if rule is None:
+            return
+        # Only add if this rule applies to at least one active jurisdiction
+        rule_jurisdictions = rule.get("jurisdiction", [])
+        applies_to = [j for j in rule_jurisdictions if j in active]
+        if not applies_to:
+            return
         findings.append({
             "rule_id": rule_id,
             "severity": rule["severity"],
             "section": rule["section"],
             "act": rule["act"],
+            "jurisdiction": applies_to,
             "trigger": trigger,
             "fix": rule["fix"],
         })
 
     if is_commercial:
-        # s16 — consent
-        if consent in ("none", "unknown"):
+        # --- Consent ---
+
+        # AU, CA, EU: opt-in required — none/unknown is a block
+        opt_in_jurisdictions = [j for j in active if j in ("au", "ca", "eu")]
+        if opt_in_jurisdictions and consent in ("none", "unknown"):
             add_finding(
                 "consent_missing",
-                f"consent='{consent}' passed by caller — no valid consent on record.",
+                f"consent='{consent}' — opt-in consent required for {', '.join(j.upper() for j in opt_in_jurisdictions)}.",
             )
-        elif consent == "inferred":
+        elif opt_in_jurisdictions and consent == "inferred":
             add_finding(
                 "consent_inferred_risk",
-                "consent='inferred' passed by caller — ACMA guidance warns against over-reliance.",
+                "consent='inferred' — ACMA and CASL warn against over-reliance on implied consent.",
             )
 
-        # s17 — sender identification
+        # US CAN-SPAM: opt-out model — flag as review if unknown (may have opted out)
+        if "us" in active and consent in ("none", "unknown"):
+            add_finding(
+                "consent_missing_us",
+                f"consent='{consent}' — confirm recipient has not previously opted out (CAN-SPAM).",
+            )
+
+        # --- Sender identification ---
         if not sender_identified:
             add_finding(
                 "sender_missing",
-                "sender_identified=False passed by caller — no sender details confirmed.",
+                "sender_identified=False — sender name and contact details required.",
             )
 
-        # s18 — unsubscribe mechanism
+        # --- Physical address (US/CA) ---
+        if any(j in active for j in ("us", "ca")):
+            has_address = _matches_any(body, PHYSICAL_ADDRESS_PATTERNS)
+            if not has_address:
+                add_finding(
+                    "physical_address_missing",
+                    "No physical mailing address detected in message body.",
+                )
+
+        # --- Unsubscribe ---
         has_unsubscribe = _matches_any(body, UNSUBSCRIBE_PATTERNS)
         if not has_unsubscribe:
             add_finding(
                 "unsubscribe_missing",
-                "No unsubscribe pattern found in message body.",
+                "No unsubscribe mechanism found in message body.",
             )
         else:
-            # Check if unsubscribe requires login (login wall anti-pattern)
             if _matches_any(body, LOGIN_WALL_PATTERNS):
                 add_finding(
                     "unsubscribe_login_required",
-                    "Login language found near unsubscribe text in message body.",
+                    "Login language found near unsubscribe text — may not be functional.",
                 )
 
-        # s6 — transactional message with promotional content
+        # --- Transactional with promotion ---
         if msg_type == "transactional_with_promotion":
             add_finding(
                 "transactional_with_promotion",
@@ -191,21 +233,32 @@ def check_message(
             )
 
     else:
-        # Pure transactional messages still need sender identification (s17)
+        # Pure transactional: sender ID still required everywhere
         if not sender_identified:
             add_finding(
                 "sender_missing",
                 "sender_identified=False — sender details required even for transactional messages.",
             )
 
-    # SMS sender ID check applies to all SMS messages regardless of commercial status
+    # --- SMS-specific rules ---
     if channel == "sms":
-        add_finding(
-            "sms_sender_id_unregistered",
-            "Channel is 'sms' — alphanumeric sender ID registration required from 1 Jul 2026.",
-        )
+        if "au" in active:
+            add_finding(
+                "sms_sender_id_unregistered",
+                "Channel is 'sms' — alphanumeric sender ID registration required from 1 Jul 2026 (AU).",
+            )
+        if "us" in active and is_commercial:
+            add_finding(
+                "tcpa_sms_consent",
+                "Channel is 'sms' — TCPA requires written prior express consent for marketing SMS to US numbers.",
+            )
+        if "eu" in active and is_commercial:
+            add_finding(
+                "eu_sms_consent",
+                "Channel is 'sms' — ePrivacy Directive requires opt-in consent for marketing SMS to EU numbers.",
+            )
 
-    # Determine overall verdict from the most severe finding
+    # Verdict from most severe finding
     severities = {f["severity"] for f in findings}
     if "block" in severities:
         verdict = "block"
@@ -218,5 +271,6 @@ def check_message(
         "verdict": verdict,
         "findings": findings,
         "classification": classification,
+        "jurisdiction_checked": active,
         "ruleset_version": RULESET_VERSION,
     }
