@@ -65,7 +65,8 @@ def main():
 
     to_review = [
         e for e in emails
-        if args.all or e.get("human_label") is None
+        if args.all
+        or (e.get("human_label") is None and e.get("draft_label") == "unclear")
     ]
 
     if not to_review:

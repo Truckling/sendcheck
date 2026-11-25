@@ -53,8 +53,9 @@ def load_labelled():
                 e = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            label = e.get("human_label")
-            if not label:
+            # Prefer human_label (manually corrected) over draft_label (pattern classifier)
+            label = e.get("human_label") or e.get("draft_label")
+            if not label or label == "unclear":
                 continue
             # Combine subject and body as the input text
             text = e.get("subject", "") + " " + e.get("body", "")
@@ -112,7 +113,7 @@ def main():
     # Cross-validation: train on 80% and test on 20%, 5 times
     # This gives a more honest accuracy estimate than a single train/test split
     if len(texts) >= 10:
-        cv_folds = min(5, len(texts) // max(counts.values(), 1) + 1) if len(texts) < 50 else 5
+        cv_folds = min(5, len(texts) // max(counts.values()) + 1) if len(texts) < 50 else 5
         cv_folds = max(2, cv_folds)
         scores = cross_val_score(model, X, labels, cv=cv_folds, scoring="f1_weighted")
         print(f"\nCross-validation F1 ({cv_folds}-fold): {scores.mean():.2f} ± {scores.std():.2f}")
