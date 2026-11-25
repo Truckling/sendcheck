@@ -6,13 +6,32 @@ build-backend = "setuptools.build_meta"
 name = "sendcheck"
 version = "0.1.0"
 description = "Pre-send compliance checks for Australian email and SMS (Spam Act 2003)"
+readme = "README.md"
 requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Truckling"}
+]
+keywords = ["mcp", "email", "compliance", "spam-act", "australia", "marketing"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Communications :: Email",
+    "Topic :: Office/Business",
+]
 dependencies = [
     "mcp>=1.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Truckling/sendcheck"
+Repository = "https://github.com/Truckling/sendcheck"
+Issues = "https://github.com/Truckling/sendcheck/issues"
 
 [project.scripts]
 sendcheck = "sendcheck.server:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
+include = ["sendcheck*"]
