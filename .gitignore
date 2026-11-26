@@ -5,7 +5,6 @@ __pycache__/
 ~/.sendcheck/
 dist/
 build/
-ml/*.pkl
 scripts/emails.jsonl
 scripts/token*.json
 scripts/report.txt
