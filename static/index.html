@@ -668,21 +668,66 @@ The Marketing Team</textarea>
     return (doc.body.innerText || doc.body.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
   }
 
+  function decodeMimePart(text, encoding) {
+    const enc = (encoding || '').toLowerCase().trim();
+    if (enc === 'base64') {
+      try {
+        const bytes = Uint8Array.from(atob(text.replace(/\s/g, '')), c => c.charCodeAt(0));
+        return new TextDecoder('utf-8').decode(bytes);
+      } catch { return text; }
+    }
+    if (enc === 'quoted-printable') {
+      return text
+        .replace(/=\r?\n/g, '')
+        .replace(/=([0-9A-Fa-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+    }
+    return text;
+  }
+
   function extractFromEml(raw) {
-    // Find subject header
-    const subjectMatch = raw.match(/^Subject:\s*(.+?)(?:\r?\n(?![ \t]))/im);
+    // Subject (may be encoded or multi-line)
+    const subjectMatch = raw.match(/^Subject:\s*(.+?)(\r?\n(?![\t ]))/im);
     if (subjectMatch) subjectFld.value = subjectMatch[1].trim();
 
-    // Find text/plain part first, fall back to text/html
-    const plainMatch = raw.match(/Content-Type:\s*text\/plain[\s\S]*?\r?\n\r?\n([\s\S]+?)(?=\r?\n--|\r?\n\r?\nContent-Type:|$)/i);
-    if (plainMatch) return plainMatch[1].replace(/=\r?\n/g, '').trim();
+    // Find MIME boundary
+    const boundaryMatch = raw.match(/boundary=["']?([^"'\r\n;]+)["']?/i);
+    if (!boundaryMatch) {
+      // Simple non-MIME email — everything after the blank header line
+      const sep = raw.indexOf('\r\n\r\n') >= 0 ? '\r\n\r\n' : '\n\n';
+      return raw.slice(raw.indexOf(sep) + sep.length).trim();
+    }
 
-    const htmlMatch = raw.match(/Content-Type:\s*text\/html[\s\S]*?\r?\n\r?\n([\s\S]+?)(?=\r?\n--|\r?\n\r?\nContent-Type:|$)/i);
-    if (htmlMatch) return extractTextFromHtml(htmlMatch[1].replace(/=\r?\n/g, ''));
+    const boundary = '--' + boundaryMatch[1].trim();
+    const parts = raw.split(new RegExp(boundary + '-{0,2}'));
 
-    // No MIME parts — treat whole body as plain text
-    const bodyStart = raw.indexOf('\r\n\r\n');
-    return bodyStart >= 0 ? raw.slice(bodyStart + 4).trim() : raw.trim();
+    let plainText = '';
+    let htmlText  = '';
+
+    for (const part of parts) {
+      const sep = part.indexOf('\r\n\r\n') >= 0 ? '\r\n\r\n' : '\n\n';
+      const hdrEnd = part.indexOf(sep);
+      if (hdrEnd < 0) continue;
+
+      const headers = part.slice(0, hdrEnd).toLowerCase();
+      const body    = part.slice(hdrEnd + sep.length);
+
+      const ctMatch  = headers.match(/content-type:\s*([^\r\n;]+)/);
+      const cteMatch = headers.match(/content-transfer-encoding:\s*([^\r\n]+)/);
+      const ct  = ctMatch  ? ctMatch[1].trim()  : '';
+      const cte = cteMatch ? cteMatch[1].trim() : '';
+
+      const decoded = decodeMimePart(body, cte);
+
+      if (ct.startsWith('text/plain') && !plainText) plainText = decoded.trim();
+      if (ct.startsWith('text/html')  && !htmlText)  htmlText  = decoded;
+    }
+
+    if (plainText) return plainText;
+    if (htmlText)  return extractTextFromHtml(htmlText);
+
+    // Fallback — no recognised parts
+    const sep = raw.indexOf('\r\n\r\n') >= 0 ? '\r\n\r\n' : '\n\n';
+    return raw.slice(raw.indexOf(sep) + sep.length).trim();
   }
 
   function handleFile(file) {
