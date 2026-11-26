@@ -15,6 +15,9 @@ PROMOTIONAL_PATTERNS = [
 
 TRANSACTIONAL_PATTERNS = [
     r'\b(order|receipt|invoice|confirmation|shipping|delivery|tracking|password reset|account|your (booking|reservation|appointment))\b',
+    # Legal, administrative and notice-type emails
+    r'\b(notice to|legal notice|class action|group member|settlement|claimant|proceeding|tribunal|court order|opt.?out deadline)\b',
+    r'\b(you (are|were) (registered|included|identified)|you have been (added|identified|included))\b',
 ]
 
 UNSUBSCRIBE_PATTERNS = [
@@ -30,18 +33,30 @@ LOGIN_WALL_PATTERNS = [
     r'(unsubscribe|opt.out).{0,80}(log in|sign in|login|signin)',
 ]
 
-# Newsletter/editorial signals — strong indicators an email is commercial
-# even when it contains no obvious promotional language.
-NEWSLETTER_PATTERNS = [
+# Strong newsletter/editorial signals — content-defining; mean the email is a
+# newsletter or editorial product, not an administrative or transactional message.
+NEWSLETTER_CONTENT_PATTERNS = [
     r'\b(newsletter|briefing|morning briefing|morning update|news update|daily update|weekly update)\b',
-    r'\b(top stories|breaking news|latest news|live updates|round.?up|this week|this month)\b',
-    r'\b(view online|view in browser|view this email|having trouble reading|read online)\b',
-    r'\b(subscribe|subscription|edition|issue|digest)\b',
-    r'\bpowered by\b',
+    r'\b(top stories|breaking news|latest news|live updates|round.?up)\b',
+    r'\b(edition|issue|digest)\b',
     r'\bsportsmail\b',
     r'\b(live free agency|live trade|live scores|live blog)\b',
     r'\bBREAKING\b',
 ]
+
+# Weak boilerplate patterns — appear in newsletters AND transactional/admin emails.
+# Used to detect newsletter-style formatting but not strong enough alone to override
+# a clear transactional classification.
+NEWSLETTER_BOILERPLATE_PATTERNS = [
+    r'\b(view online|view in browser|view this email|having trouble reading|read online)\b',
+    r'\b(subscribe|subscription)\b',
+    r'\bpowered by\b',
+    r'\b(this week|this month)\b',
+]
+
+# Combined — used where any newsletter signal is enough (e.g. marketing classification
+# when there are no transactional signals at all).
+NEWSLETTER_PATTERNS = NEWSLETTER_CONTENT_PATTERNS + NEWSLETTER_BOILERPLATE_PATTERNS
 
 # Physical address patterns — required by CAN-SPAM and CASL in email footers
 PHYSICAL_ADDRESS_PATTERNS = [
@@ -79,9 +94,12 @@ def classify_message(subject: str, body: str, channel: str = "email") -> dict:
     combined = f"{subject}\n{body}".lower()
     reasons = []
 
-    promotional = _matches_any(combined, PROMOTIONAL_PATTERNS)
-    transactional = _matches_any(combined, TRANSACTIONAL_PATTERNS)
-    newsletter = _matches_any(combined, NEWSLETTER_PATTERNS)
+    promotional     = _matches_any(combined, PROMOTIONAL_PATTERNS)
+    transactional   = _matches_any(combined, TRANSACTIONAL_PATTERNS)
+    newsletter      = _matches_any(combined, NEWSLETTER_PATTERNS)
+    # Strong = content-defining newsletter signals (briefing, edition, top stories…)
+    # Weak   = boilerplate that appears in many email types (view online, subscribe…)
+    strong_newsletter = _matches_any(combined, NEWSLETTER_CONTENT_PATTERNS)
 
     if promotional:
         reasons.append("Promotional language detected (e.g. sale, discount, offer).")
@@ -90,18 +108,21 @@ def classify_message(subject: str, body: str, channel: str = "email") -> dict:
     if newsletter and not transactional:
         reasons.append("Editorial newsletter signals detected (e.g. briefing, view online, subscribe).")
 
-    if transactional and promotional and not newsletter:
-        # Only flag as transactional_with_promotion when there are no newsletter
-        # signals. Newsletter emails routinely reference accounts/subscriptions
-        # in their footers — that's not a transactional message with promos bolted
-        # on, it's just a marketing email. Newsletter signals take precedence.
-        msg_type = "transactional_with_promotion"
-        reasons.append("Both transactional and promotional content found — treated as commercial.")
-    elif transactional and not newsletter and not promotional:
-        msg_type = "transactional"
-    elif promotional or newsletter or transactional:
-        # Covers: purely promotional, newsletter (with or without account footer),
-        # and the newsletter+promotional combo that was falsely flagging above.
+    if transactional and not strong_newsletter:
+        # Transactional classification wins when there are no strong content-defining
+        # newsletter signals. Boilerplate like "view online" or "subscription preferences"
+        # in a footer is not enough to reclassify a legal notice or order confirmation.
+        if promotional:
+            msg_type = "transactional_with_promotion"
+            reasons.append("Both transactional and promotional content found — treated as commercial.")
+        else:
+            msg_type = "transactional"
+    elif strong_newsletter or promotional:
+        # Strong newsletter signals (briefing, edition, top stories, etc.) or purely
+        # promotional content → marketing, even if transactional words appear in a footer.
+        msg_type = "marketing"
+    elif newsletter:
+        # Only weak boilerplate newsletter signals, no transactional content.
         msg_type = "marketing"
     else:
         msg_type = "unclear"
