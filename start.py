@@ -41,22 +41,10 @@ except Exception as e:
     traceback.print_exc()
     sys.exit(1)
 
-# PUBLIC_HOST is set in Railway environment variables to the public domain,
-# e.g. web-production-a78fb254.up.railway.app or truvek.io
-# Without it, the MCP DNS-rebinding protection blocks all external requests.
-public_host = os.environ.get("PUBLIC_HOST", "")
-allowed_hosts = ["localhost", f"localhost:{port}"]
-if public_host:
-    allowed_hosts.append(public_host)
-    print(f"[truvek-comply] Allowing host: {public_host}", flush=True)
-else:
-    print("[truvek-comply] WARNING: PUBLIC_HOST not set — only localhost allowed", flush=True)
-
-transport_security = TransportSecuritySettings(
-    enable_dns_rebinding_protection=True,
-    allowed_hosts=allowed_hosts,
-    allowed_origins=[f"https://{h}" for h in allowed_hosts if not h.startswith("localhost")],
-)
+# Disable DNS rebinding protection — we run behind Railway's TLS reverse proxy
+# which already handles host validation at the edge. Enabling it here blocks
+# legitimate requests because Railway rewrites the Host header internally.
+transport_security = TransportSecuritySettings(enable_dns_rebinding_protection=False)
 
 # Add /health directly to the MCPServer — avoids wrapping in a second Starlette app
 # which breaks the streamable-http routing context.
