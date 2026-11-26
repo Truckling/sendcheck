@@ -1,4 +1,4 @@
-# SendCheck
+# Truvek Comply
 
 Pre-send compliance checker for email and SMS. Checks messages against four major laws before you send them — returns a verdict, findings, and fixes.
 
@@ -37,8 +37,8 @@ Works as an MCP server. Add it to Claude and ask it to check your emails in plai
 ```json
 {
   "mcpServers": {
-    "sendcheck": {
-      "command": "sendcheck"
+    "truvek-comply": {
+      "command": "truvek-comply"
     }
   }
 }
@@ -47,13 +47,13 @@ Works as an MCP server. Add it to Claude and ask it to check your emails in plai
 **Claude Code** — run:
 
 ```bash
-claude mcp add sendcheck sendcheck
+claude mcp add truvek-comply truvek-comply
 ```
 
 ## Install
 
 ```bash
-pip install sendcheck
+pip install truvek-comply
 ```
 
 Requires Python 3.10+.
@@ -72,7 +72,7 @@ Or check all jurisdictions at once (the default):
 
 > "Check this email — our list includes US, Canadian, and Australian subscribers."
 
-Claude will call SendCheck and return a verdict — **pass**, **review**, or **block** — with findings tagged to the specific law they come from.
+Claude will call Truvek Comply and return a verdict — **pass**, **review**, or **block** — with findings tagged to the specific law they come from.
 
 ## Tools
 
@@ -103,7 +103,7 @@ Claude will call SendCheck and return a verdict — **pass**, **review**, or **b
 
 Email and SMS marketing is regulated everywhere. ACMA (Australia) has issued fines over 7 million AUD for consent failures and 700K AUD for transactional emails containing promotional content. The FTC enforces CAN-SPAM with fines up to 51,744 USD per email. CRTC enforces CASL with penalties up to 10 million CAD per violation.
 
-SendCheck is a pre-send compliance tool, not legal advice.
+Truvek Comply is a pre-send compliance tool, not legal advice.
 
 ## License
 

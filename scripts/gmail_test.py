@@ -28,7 +28,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
-from sendcheck.checker import check_message
+from truvek_comply.checker import check_message
 
 # Only read access — we never send or modify anything
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]

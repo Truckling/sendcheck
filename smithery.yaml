@@ -1,5 +1,5 @@
-name: sendcheck
-description: Pre-send compliance checker for Australian email and SMS. Checks messages against the Spam Act 2003 — consent, sender ID, unsubscribe, and transactional-with-promotion rules.
+name: truvek-comply
+description: Pre-send compliance checker for email and SMS by Truvek Comply. Checks messages against the Spam Act 2003 (AU), CAN-SPAM (US), CASL (CA), and GDPR/ePrivacy (EU) — consent, sender ID, unsubscribe, and transactional-with-promotion rules.
 license: MIT
 
 startCommand:
@@ -8,4 +8,4 @@ startCommand:
     type: object
     properties: {}
   commandFunction: |-
-    () => ({ command: "sendcheck", args: [] })
+    () => ({ command: "truvek-comply", args: [] })

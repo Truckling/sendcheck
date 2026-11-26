@@ -13,7 +13,7 @@ from .checker import check_message as _check, classify_message as _classify
 from .evidence import record_check, get_evidence as _get_evidence
 from .rules import RULES, RULESET_VERSION, get_rule
 
-mcp = MCPServer("sendcheck")
+mcp = MCPServer("truvek-comply")
 
 _read_only = ToolAnnotations(read_only_hint=True, destructive_hint=False)
 
