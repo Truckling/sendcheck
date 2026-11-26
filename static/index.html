@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Truvek Comply: pre-send compliance for email and SMS</title>
-  <meta name="description" content="Check emails and SMS against spam laws before you send. Covers Spam Act (AU), CAN-SPAM (US), CASL (CA), and GDPR (EU). Works as an MCP tool inside Claude.">
+  <meta name="description" content="Checks messages against spam and privacy laws before you send. Covers Spam Act (AU), CAN-SPAM (US), CASL (CA), and GDPR (EU). Works as an MCP tool inside Claude.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -43,64 +43,70 @@
       outline-offset: 2px;
     }
 
-    /* ---- layout ---- */
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 0 40px; }
-
-    @media (max-width: 600px) {
-      .wrap { padding: 0 20px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.01ms !important; }
     }
 
+    /* ---- layout ---- */
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+    @media (max-width: 600px) { .wrap { padding: 0 20px; } }
+
     /* ---- nav ---- */
-    nav { padding: 20px 0; }
-    nav .wrap {
+    nav { padding: 20px 0 0; }
+    .nav-inner {
       display: flex;
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid var(--rule-light);
       padding-bottom: 20px;
     }
-    .logo {
-      font-weight: 700;
-      font-size: 16px;
-      color: var(--press-navy);
-      letter-spacing: -0.01em;
-    }
+    .logo { font-weight: 700; font-size: 15px; color: var(--press-navy); }
     .nav-links { display: flex; gap: 24px; font-size: 14px; }
     .nav-links a { color: var(--text-muted); }
     .nav-links a:hover { color: var(--press-navy); text-decoration: none; }
 
     /* ---- hero ---- */
-    .hero { padding: 64px 0 0; }
-    .hero .wrap { border-bottom: 1px solid var(--rule-light); padding-bottom: 48px; }
+    .hero { padding: 48px 0 0; }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 2fr 3fr;
+      gap: 56px;
+      align-items: start;
+      border-bottom: 1px solid var(--rule-light);
+      padding-bottom: 0;
+    }
+    @media (max-width: 860px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+    }
+
+    /* ---- hero left ---- */
+    .hero-left { padding-bottom: 48px; }
 
     h1 {
       font-size: 44px;
       font-weight: 700;
       letter-spacing: -0.02em;
       line-height: 1.1;
-      max-width: 640px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
+      max-width: 420px;
     }
-
     .hero-sub {
-      font-size: 16px;
+      font-size: 15px;
       color: var(--text-muted);
-      max-width: 520px;
-      margin-bottom: 32px;
+      max-width: 380px;
+      margin-bottom: 28px;
+      line-height: 1.6;
     }
-
-    .btn-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; }
 
     .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+      display: inline-block;
       background: var(--press-navy);
       color: var(--proof-white);
       font-family: inherit;
       font-weight: 500;
-      font-size: 15px;
-      padding: 10px 20px;
+      font-size: 14px;
+      padding: 10px 18px;
       border: none;
       border-radius: 4px;
       cursor: pointer;
@@ -110,15 +116,13 @@
     .btn-primary:hover { opacity: 0.85; text-decoration: none; color: var(--proof-white); }
 
     .btn-secondary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+      display: inline-block;
       background: transparent;
       color: var(--press-navy);
       font-family: inherit;
       font-weight: 500;
-      font-size: 15px;
-      padding: 10px 20px;
+      font-size: 14px;
+      padding: 10px 18px;
       border: 1px solid var(--rule-slate);
       border-radius: 4px;
       cursor: pointer;
@@ -127,114 +131,64 @@
     }
     .btn-secondary:hover { border-color: var(--press-navy); text-decoration: none; color: var(--press-navy); }
 
-    .install-row {
+    .install-lines { display: flex; flex-direction: column; gap: 8px; }
+    .install-line {
       display: flex;
       align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-      margin-top: 32px;
-      padding-top: 24px;
-      border-top: 1px solid var(--rule-light);
+      gap: 10px;
     }
-    .install-label { font-size: 13px; color: var(--text-muted); }
-    .code-pill {
+    .install-code {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
+      font-size: 12px;
       color: var(--press-navy);
-      background: #E8EAED;
-      padding: 5px 12px;
+      background: #E4E6E4;
+      padding: 5px 10px;
       border-radius: 4px;
+      flex: 1;
     }
-
-    /* ---- CMY strip — appears once ---- */
-    .cmy-strip {
-      display: flex;
-      height: 6px;
-    }
-    .cmy-strip span { flex: 1; }
-    .cmy-cyan    { background: var(--cyan); }
-    .cmy-magenta { background: var(--magenta); }
-    .cmy-yellow  { background: var(--yellow); }
-    .cmy-navy    { background: var(--press-navy); }
-
-    /* ---- sections ---- */
-    section { padding: 56px 0; }
-    section .wrap { border-bottom: 1px solid var(--rule-light); padding-bottom: 56px; }
-    section:last-of-type .wrap { border-bottom: none; }
-
-    h2 {
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      line-height: 1.1;
-      margin-bottom: 24px;
-    }
-
-    h3 {
-      font-size: 16px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    /* ---- jurisdiction list ---- */
-    .jur-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-      gap: 1px;
-      background: var(--rule-light);
+    .copy-btn {
+      font-family: inherit;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: none;
       border: 1px solid var(--rule-light);
+      border-radius: 4px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: color 0.12s, border-color 0.12s;
+      white-space: nowrap;
     }
-    .jur-item {
-      background: var(--proof-white);
+    .copy-btn:hover { color: var(--press-navy); border-color: var(--rule-slate); }
+    .copy-btn.copied { color: var(--cyan-ink); border-color: var(--cyan); }
+
+    /* ---- hero right: proof checker ---- */
+    .hero-right { padding-bottom: 0; }
+
+    /* crop marks */
+    .proof-wrap {
+      position: relative;
+      margin: 0 16px;
+    }
+    .cm {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+    }
+    .cm-tl { top: -8px; left: -8px; border-top: 1px solid var(--rule-slate); border-left: 1px solid var(--rule-slate); }
+    .cm-tr { top: -8px; right: -8px; border-top: 1px solid var(--rule-slate); border-right: 1px solid var(--rule-slate); }
+    .cm-bl { bottom: -8px; left: -8px; border-bottom: 1px solid var(--rule-slate); border-left: 1px solid var(--rule-slate); }
+    .cm-br { bottom: -8px; right: -8px; border-bottom: 1px solid var(--rule-slate); border-right: 1px solid var(--rule-slate); }
+
+    .proof-inner {
+      border: 1px solid var(--rule-light);
+      border-radius: 0;
+      background: #fff;
       padding: 20px;
     }
-    .jur-cc {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--rule-slate);
-      margin-bottom: 8px;
-    }
-    .jur-law { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
-    .jur-region { font-size: 13px; color: var(--text-muted); }
 
-    /* ---- rules table ---- */
-    .rules-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-    }
-    .rules-table th {
-      text-align: left;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-muted);
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--rule-light);
-    }
-    .rules-table td {
-      padding: 11px 12px;
-      border-bottom: 1px solid var(--rule-light);
-      vertical-align: middle;
-    }
-    .rules-table tr:last-child td { border-bottom: none; }
-    .sev {
-      display: inline-block;
-      font-size: 12px;
-      font-weight: 500;
-      padding: 2px 8px;
-      border-radius: 4px;
-    }
-    .sev-block  { background: rgba(209,40,106,0.1); color: var(--magenta-ink); }
-    .sev-review { background: rgba(239,194,26,0.18); color: var(--yellow-ink); }
-    .sev-info   { background: rgba(0,159,214,0.12); color: var(--cyan-ink); }
+    .proof-controls { display: flex; flex-direction: column; gap: 12px; }
 
-    /* ---- demo ---- */
-    .demo-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
-    @media (max-width: 760px) { .demo-layout { grid-template-columns: 1fr; } }
-
-    .demo-form { display: flex; flex-direction: column; gap: 14px; }
-
-    .channel-row { display: flex; gap: 20px; }
+    .channel-row { display: flex; gap: 16px; }
     .channel-opt {
       display: flex;
       align-items: center;
@@ -243,85 +197,103 @@
       color: var(--text-muted);
       cursor: pointer;
     }
-    .channel-opt input { accent-color: var(--press-navy); cursor: pointer; }
+    .channel-opt input { accent-color: var(--press-navy); }
 
     .field-label {
       display: block;
       font-size: 13px;
       font-weight: 500;
       color: var(--text-muted);
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
 
-    .demo-input, .demo-textarea {
+    .proof-input, .proof-textarea {
       width: 100%;
-      background: #fff;
-      border: 1px solid var(--rule-slate);
+      background: var(--proof-white);
+      border: 1px solid var(--rule-light);
       border-radius: 4px;
       color: var(--press-navy);
       font-family: inherit;
       font-size: 14px;
-      padding: 9px 12px;
-      transition: border-color 0.12s;
+      padding: 8px 12px;
       outline: none;
+      transition: border-color 0.12s;
     }
-    .demo-input:focus, .demo-textarea:focus { border-color: var(--press-navy); }
+    .proof-input:focus, .proof-textarea:focus { border-color: var(--rule-slate); }
+    .proof-textarea { min-height: 120px; resize: vertical; line-height: 1.5; }
 
-    .demo-textarea { min-height: 140px; resize: vertical; line-height: 1.5; }
-
-    /* drop zone for image paste */
+    /* paste zone */
     .paste-zone {
-      border: 1px dashed var(--rule-slate);
+      border: 1px dashed var(--rule-light);
       border-radius: 4px;
-      padding: 16px;
-      text-align: center;
+      padding: 10px 12px;
       font-size: 13px;
       color: var(--text-muted);
       cursor: pointer;
-      transition: border-color 0.12s, background 0.12s;
       position: relative;
+      transition: border-color 0.12s;
     }
-    .paste-zone:hover, .paste-zone.drag-over { border-color: var(--press-navy); background: #eef0ee; }
+    .paste-zone:hover { border-color: var(--rule-slate); }
     .paste-zone input[type="file"] {
       position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
     }
-    .paste-preview {
-      max-width: 100%;
-      max-height: 160px;
-      border-radius: 2px;
-      margin-top: 10px;
+    .paste-preview { max-width: 100%; max-height: 120px; margin-top: 8px; display: none; border-radius: 2px; }
+    .ocr-status { font-size: 12px; color: var(--text-muted); margin-top: 4px; display: none; }
+
+    .run-btn {
+      align-self: flex-start;
+      background: var(--press-navy);
+      color: var(--proof-white);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 14px;
+      padding: 9px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: opacity 0.12s;
+    }
+    .run-btn:hover { opacity: 0.85; }
+    .run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* CMY strip — appears here (under proof) and top of footer only */
+    .cmy-strip { display: flex; height: 6px; }
+    .cmy-strip span { flex: 1; }
+    .cmy-cyan    { background: var(--cyan); }
+    .cmy-magenta { background: var(--magenta); }
+    .cmy-yellow  { background: var(--yellow); }
+    .cmy-navy    { background: var(--press-navy); }
+
+    /* findings rail */
+    .findings-rail {
+      padding: 16px 0 20px;
       display: none;
     }
-    .ocr-status { font-size: 12px; color: var(--text-muted); margin-top: 6px; display: none; }
-
-    /* ---- result panel ---- */
-    .demo-result { display: none; }
-    .result-verdict-row {
+    .verdict-row {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 16px;
-      padding-bottom: 16px;
+      padding-bottom: 12px;
       border-bottom: 1px solid var(--rule-light);
+      margin-bottom: 12px;
     }
-    .verdict-pill {
-      font-size: 13px;
+    .verdict-word {
+      font-size: 14px;
       font-weight: 700;
-      padding: 4px 12px;
-      border-radius: 4px;
     }
-    .verdict-pass   { background: rgba(0,159,214,0.12); color: var(--cyan-ink); }
-    .verdict-review { background: rgba(239,194,26,0.18); color: var(--yellow-ink); }
-    .verdict-block  { background: rgba(209,40,106,0.1); color: var(--magenta-ink); }
+    .verdict-pass   { color: var(--cyan-ink); }
+    .verdict-review { color: var(--yellow-ink); }
+    .verdict-block  { color: var(--magenta-ink); }
     .result-class   { font-size: 13px; color: var(--text-muted); }
 
     .finding {
-      padding: 14px 0;
+      padding: 10px 0;
       border-bottom: 1px solid var(--rule-light);
     }
     .finding:last-child { border-bottom: none; }
-    .finding-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
-    .finding-why   { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+    .finding-num  { font-size: 11px; font-weight: 700; color: var(--rule-slate); margin-bottom: 3px; }
+    .finding-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+    .finding-why   { font-size: 13px; color: var(--text-muted); margin-bottom: 3px; }
     .finding-fix   { font-size: 13px; color: var(--text-muted); }
     .finding-fix strong { color: var(--press-navy); font-weight: 500; }
 
@@ -329,55 +301,102 @@
     .finding-review .finding-title { color: var(--yellow-ink); }
     .finding-info .finding-title   { color: var(--cyan-ink); }
 
-    .no-findings {
-      font-size: 14px;
-      color: var(--cyan-ink);
-      padding: 14px 0;
-    }
-    .result-error {
-      font-size: 14px;
-      color: var(--magenta-ink);
-      padding: 14px 0;
-    }
+    .clear-to-send { font-size: 14px; font-weight: 700; color: var(--cyan-ink); padding: 8px 0; }
+    .check-error   { font-size: 14px; color: var(--magenta-ink); padding: 8px 0; }
 
-    /* ---- two col ---- */
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+    /* ---- sections ---- */
+    section { padding: 56px 0; }
+    .section-wrap { border-bottom: 1px solid var(--rule-light); padding-bottom: 56px; }
+    section:last-of-type .section-wrap { border-bottom: none; }
+
+    h2 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 24px;
+    }
+    h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+
+    /* ---- laws list ---- */
+    .laws-list { width: 100%; border-collapse: collapse; font-size: 15px; }
+    .laws-list td {
+      padding: 13px 0;
+      border-bottom: 1px solid var(--rule-light);
+      vertical-align: top;
+    }
+    .laws-list tr:last-child td { border-bottom: none; }
+    .laws-list .law-name { font-weight: 500; padding-right: 32px; white-space: nowrap; }
+    .laws-list .law-region { color: var(--text-muted); padding-right: 32px; }
+    .laws-list .law-channel { color: var(--text-muted); }
+
+    /* ---- rules table ---- */
+    .rules-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .rules-table th {
+      text-align: left;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      padding: 10px 12px 10px 0;
+      border-bottom: 1px solid var(--rule-light);
+    }
+    .rules-table td {
+      padding: 11px 12px 11px 0;
+      border-bottom: 1px solid var(--rule-light);
+      vertical-align: middle;
+    }
+    .rules-table tr:last-child td { border-bottom: none; }
+    .sev {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .sev-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .sev-block  .sev-dot { background: var(--magenta); }
+    .sev-block  .sev-word { color: var(--magenta-ink); font-weight: 500; }
+    .sev-review .sev-dot { background: var(--yellow); }
+    .sev-review .sev-word { color: var(--yellow-ink); font-weight: 500; }
+    .sev-info   .sev-dot { background: var(--cyan); }
+    .sev-info   .sev-word { color: var(--cyan-ink); font-weight: 500; }
+
+    /* ---- usage ---- */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 32px; }
     @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
     .two-col p { font-size: 14px; color: var(--text-muted); line-height: 1.65; margin-top: 6px; }
 
-    /* ---- code block ---- */
     .code-block {
-      background: #E8EAED;
+      background: var(--press-navy);
+      color: var(--proof-white);
       border-radius: 4px;
-      padding: 20px;
+      padding: 20px 24px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 13px;
-      line-height: 1.7;
+      line-height: 1.75;
       overflow-x: auto;
-      margin-top: 28px;
     }
     .code-comment { color: var(--rule-slate); }
 
     /* ---- stakes ---- */
-    .stakes-text {
-      font-size: 15px;
-      color: var(--text-muted);
-      max-width: 600px;
-      line-height: 1.75;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { transition-duration: 0.01ms !important; }
-    }
+    .stakes-text { font-size: 15px; color: var(--text-muted); max-width: 640px; line-height: 1.75; }
+    .stakes-text a { color: var(--cyan-ink); }
+    .disclaimer { font-size: 14px; color: var(--text-muted); margin-top: 20px; }
 
     /* ---- footer ---- */
-    footer { padding: 28px 0; border-top: 1px solid var(--rule-light); }
-    footer .wrap {
+    footer { padding: 0; }
+    .foot-inner {
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 12px;
+      padding: 24px 0;
     }
     .foot-copy { font-size: 13px; color: var(--text-muted); }
     .foot-links { display: flex; gap: 20px; font-size: 13px; }
@@ -389,200 +408,257 @@
 
 <nav>
   <div class="wrap">
-    <div class="logo">Truvek Comply</div>
-    <div class="nav-links">
-      <a href="#demo">Try it</a>
-      <a href="#rules">Rules</a>
-      <a href="#usage">Usage</a>
-      <a href="https://github.com/Truckling/truvek-comply">GitHub</a>
+    <div class="nav-inner">
+      <div class="logo">Truvek Comply</div>
+      <div class="nav-links">
+        <a href="#rules">Rules</a>
+        <a href="#usage">Usage</a>
+        <a href="https://github.com/Truckling/truvek-comply">GitHub</a>
+        <a href="https://pypi.org/project/truvek-comply/">PyPI</a>
+      </div>
     </div>
   </div>
 </nav>
 
 <section class="hero">
   <div class="wrap">
-    <h1>Pre-send compliance for email and SMS</h1>
-    <p class="hero-sub">Checks messages against spam and privacy laws before you send. Add it to Claude and ask it to review your email in plain English.</p>
-    <div class="btn-row">
-      <a href="https://claude.ai/settings/integrations?url=https%3A%2F%2Ftruvek.io%2Fmcp" class="btn-primary">Add to Claude</a>
-      <a href="https://github.com/Truckling/truvek-comply" class="btn-secondary">View on GitHub</a>
-    </div>
-    <div class="install-row">
-      <span class="install-label">Install</span>
-      <code class="code-pill">pip install truvek-comply</code>
-      <span class="install-label" style="margin-left:8px">MCP endpoint</span>
-      <code class="code-pill">https://truvek.io/mcp</code>
-    </div>
-  </div>
-</section>
+    <div class="hero-grid">
 
-<div class="cmy-strip">
-  <span class="cmy-cyan"></span>
-  <span class="cmy-magenta"></span>
-  <span class="cmy-yellow"></span>
-  <span class="cmy-navy"></span>
-</div>
-
-<section id="demo">
-  <div class="wrap">
-    <h2>Check a message</h2>
-    <div class="demo-layout">
-      <div class="demo-form">
-        <div class="channel-row">
-          <label class="channel-opt">
-            <input type="radio" name="channel" value="email" checked> Email
-          </label>
-          <label class="channel-opt">
-            <input type="radio" name="channel" value="sms"> SMS
-          </label>
+      <!-- left: headline + CTAs -->
+      <div class="hero-left">
+        <h1>Check every email and SMS before it sends.</h1>
+        <p class="hero-sub">Checks messages against spam and privacy laws in Australia, the US, Canada and the EU. Add it to Claude or call it from Python.</p>
+        <div class="btn-row">
+          <a href="https://claude.ai/settings/integrations?url=https%3A%2F%2Ftruvek.io%2Fmcp" class="btn-primary">Add to Claude</a>
+          <a href="https://github.com/Truckling/truvek-comply" class="btn-secondary">View on GitHub</a>
         </div>
-        <div id="subject-wrap">
-          <label class="field-label" for="demo-subject">Subject line</label>
-          <input type="text" id="demo-subject" class="demo-input" placeholder="Your email subject line">
-        </div>
-        <div>
-          <label class="field-label" for="demo-body">Message body</label>
-          <textarea id="demo-body" class="demo-textarea" placeholder="Paste your message here..."></textarea>
-        </div>
-        <div>
-          <label class="field-label">Paste a screenshot</label>
-          <div class="paste-zone" id="paste-zone" tabindex="0" role="button" aria-label="Paste or upload a screenshot of your email">
-            <input type="file" accept="image/*" id="img-upload" aria-hidden="true">
-            Paste an image (Ctrl+V) or click to upload
-            <img class="paste-preview" id="paste-preview" alt="Pasted screenshot">
-            <div class="ocr-status" id="ocr-status">Reading text from image...</div>
+        <div class="install-lines">
+          <div class="install-line">
+            <code class="install-code" id="copy-pip">pip install truvek-comply</code>
+            <button class="copy-btn" data-copy="pip install truvek-comply">Copy</button>
+          </div>
+          <div class="install-line">
+            <code class="install-code" id="copy-url">https://truvek.io/mcp</code>
+            <button class="copy-btn" data-copy="https://truvek.io/mcp">Copy</button>
           </div>
         </div>
-        <div>
-          <button class="btn-primary" id="demo-submit">Run check</button>
-        </div>
       </div>
-      <div class="demo-result" id="demo-result" aria-live="polite"></div>
+
+      <!-- right: live checker as proof -->
+      <div class="hero-right">
+        <div class="proof-wrap">
+          <span class="cm cm-tl" aria-hidden="true"></span>
+          <span class="cm cm-tr" aria-hidden="true"></span>
+          <span class="cm cm-bl" aria-hidden="true"></span>
+          <span class="cm cm-br" aria-hidden="true"></span>
+          <div class="proof-inner">
+            <div class="proof-controls">
+              <div class="channel-row" role="group" aria-label="Message channel">
+                <label class="channel-opt">
+                  <input type="radio" name="channel" value="email" checked> Email
+                </label>
+                <label class="channel-opt">
+                  <input type="radio" name="channel" value="sms"> SMS
+                </label>
+              </div>
+              <div id="subject-wrap">
+                <label class="field-label" for="demo-subject">Subject line</label>
+                <input type="text" id="demo-subject" class="proof-input" value="This weekend only: 20% off everything">
+              </div>
+              <div>
+                <label class="field-label" for="demo-body">Message body</label>
+                <textarea id="demo-body" class="proof-textarea">Hi,
+
+We've got some great deals this weekend that we thought you'd love.
+
+Shop now and save 20% on everything in store.
+
+The Marketing Team</textarea>
+              </div>
+              <div>
+                <label class="field-label">Paste a screenshot</label>
+                <div class="paste-zone" id="paste-zone" tabindex="0" role="button" aria-label="Paste or upload a screenshot of your email to extract text">
+                  <input type="file" accept="image/*" id="img-upload" aria-hidden="true">
+                  Paste an image (Ctrl+V) or click to upload
+                  <img class="paste-preview" id="paste-preview" alt="Pasted screenshot">
+                  <div class="ocr-status" id="ocr-status"></div>
+                </div>
+              </div>
+              <button class="run-btn" id="run-check">Run check</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- CMY strip directly under proof — first of two appearances on page -->
+        <div class="cmy-strip" aria-hidden="true">
+          <span class="cmy-cyan"></span>
+          <span class="cmy-magenta"></span>
+          <span class="cmy-yellow"></span>
+          <span class="cmy-navy"></span>
+        </div>
+
+        <!-- findings rail -->
+        <div class="findings-rail" id="findings-rail" aria-live="polite" role="region" aria-label="Check results"></div>
+      </div>
+
     </div>
   </div>
 </section>
 
 <section id="laws">
   <div class="wrap">
-    <h2>Four laws, one check</h2>
-    <div class="jur-list" role="list">
-      <div class="jur-item" role="listitem">
-        <div class="jur-cc">AU</div>
-        <div class="jur-law">Spam Act 2003</div>
-        <div class="jur-region">Australia, email and SMS</div>
-      </div>
-      <div class="jur-item" role="listitem">
-        <div class="jur-cc">US</div>
-        <div class="jur-law">CAN-SPAM Act</div>
-        <div class="jur-region">United States, email</div>
-      </div>
-      <div class="jur-item" role="listitem">
-        <div class="jur-cc">US</div>
-        <div class="jur-law">TCPA</div>
-        <div class="jur-region">United States, SMS</div>
-      </div>
-      <div class="jur-item" role="listitem">
-        <div class="jur-cc">CA</div>
-        <div class="jur-law">CASL</div>
-        <div class="jur-region">Canada, email and SMS</div>
-      </div>
-      <div class="jur-item" role="listitem">
-        <div class="jur-cc">EU</div>
-        <div class="jur-law">GDPR / ePrivacy</div>
-        <div class="jur-region">European Union, email and SMS</div>
-      </div>
+    <div class="section-wrap">
+      <h2>Five laws, one check</h2>
+      <table class="laws-list" role="list">
+        <tbody>
+          <tr>
+            <td class="law-name">Spam Act 2003</td>
+            <td class="law-region">Australia</td>
+            <td class="law-channel">Email and SMS</td>
+          </tr>
+          <tr>
+            <td class="law-name">CAN-SPAM Act</td>
+            <td class="law-region">United States</td>
+            <td class="law-channel">Email</td>
+          </tr>
+          <tr>
+            <td class="law-name">TCPA</td>
+            <td class="law-region">United States</td>
+            <td class="law-channel">SMS</td>
+          </tr>
+          <tr>
+            <td class="law-name">CASL</td>
+            <td class="law-region">Canada</td>
+            <td class="law-channel">Email and SMS</td>
+          </tr>
+          <tr>
+            <td class="law-name">GDPR / ePrivacy Directive</td>
+            <td class="law-region">European Union</td>
+            <td class="law-channel">Email and SMS</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </section>
 
 <section id="rules">
   <div class="wrap">
-    <h2>What it checks</h2>
-    <table class="rules-table">
-      <thead>
-        <tr>
-          <th>Rule</th>
-          <th>Laws</th>
-          <th>Severity</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr><td>Consent missing (opt-in required)</td><td>Spam Act, CASL, GDPR</td><td><span class="sev sev-block">Block</span></td></tr>
-        <tr><td>Sender not identified</td><td>All four laws</td><td><span class="sev sev-block">Block</span></td></tr>
-        <tr><td>No unsubscribe mechanism</td><td>All four laws</td><td><span class="sev sev-block">Block</span></td></tr>
-        <tr><td>Physical mailing address missing</td><td>CAN-SPAM, CASL</td><td><span class="sev sev-block">Block</span></td></tr>
-        <tr><td>SMS prior written consent missing</td><td>TCPA (US)</td><td><span class="sev sev-block">Block</span></td></tr>
-        <tr><td>SMS opt-in consent missing</td><td>ePrivacy (EU)</td><td><span class="sev sev-block">Block</span></td></tr>
-        <tr><td>Inferred or implied consent risk</td><td>Spam Act, CASL</td><td><span class="sev sev-review">Review</span></td></tr>
-        <tr><td>Unsubscribe requires login</td><td>Spam Act, CASL, GDPR</td><td><span class="sev sev-review">Review</span></td></tr>
-        <tr><td>Transactional email with promotional content</td><td>Spam Act, CAN-SPAM, CASL</td><td><span class="sev sev-review">Review</span></td></tr>
-        <tr><td>Opt-out not confirmed</td><td>CAN-SPAM</td><td><span class="sev sev-review">Review</span></td></tr>
-        <tr><td>SMS alphanumeric sender ID unregistered</td><td>ACMA (AU, from Jul 2026)</td><td><span class="sev sev-info">Info</span></td></tr>
-      </tbody>
-    </table>
+    <div class="section-wrap">
+      <h2>What it checks</h2>
+      <table class="rules-table">
+        <thead>
+          <tr>
+            <th>Rule</th>
+            <th>Laws</th>
+            <th>Severity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Consent missing (opt-in required)</td><td>Spam Act, CASL, GDPR</td><td><span class="sev sev-block"><span class="sev-dot"></span><span class="sev-word">Blocks</span></span></td></tr>
+          <tr><td>No unsubscribe mechanism</td><td>All five laws</td><td><span class="sev sev-block"><span class="sev-dot"></span><span class="sev-word">Blocks</span></span></td></tr>
+          <tr><td>Physical mailing address missing</td><td>CAN-SPAM, CASL</td><td><span class="sev sev-block"><span class="sev-dot"></span><span class="sev-word">Blocks</span></span></td></tr>
+          <tr><td>Sender not identified</td><td>All five laws</td><td><span class="sev sev-block"><span class="sev-dot"></span><span class="sev-word">Blocks</span></span></td></tr>
+          <tr><td>SMS opt-in consent missing</td><td>ePrivacy (EU)</td><td><span class="sev sev-block"><span class="sev-dot"></span><span class="sev-word">Blocks</span></span></td></tr>
+          <tr><td>SMS prior written consent missing</td><td>TCPA (US)</td><td><span class="sev sev-block"><span class="sev-dot"></span><span class="sev-word">Blocks</span></span></td></tr>
+          <tr><td>Inferred or implied consent risk</td><td>Spam Act, CASL</td><td><span class="sev sev-review"><span class="sev-dot"></span><span class="sev-word">Review</span></span></td></tr>
+          <tr><td>Opt-out not confirmed</td><td>CAN-SPAM</td><td><span class="sev sev-review"><span class="sev-dot"></span><span class="sev-word">Review</span></span></td></tr>
+          <tr><td>Transactional email with promotional content</td><td>Spam Act, CAN-SPAM, CASL</td><td><span class="sev sev-review"><span class="sev-dot"></span><span class="sev-word">Review</span></span></td></tr>
+          <tr><td>Unsubscribe requires login</td><td>Spam Act, CASL, GDPR</td><td><span class="sev sev-review"><span class="sev-dot"></span><span class="sev-word">Review</span></span></td></tr>
+          <tr><td>SMS alphanumeric sender ID unregistered</td><td>ACMA (AU, from Jul 2026)</td><td><span class="sev sev-info"><span class="sev-dot"></span><span class="sev-word">Info</span></span></td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>
 
 <section id="usage">
   <div class="wrap">
-    <h2>Two ways to use it</h2>
-    <div class="two-col">
-      <div>
-        <h3>Ask Claude in plain English</h3>
-        <p>Add the MCP server to Claude Desktop or Claude.ai and ask it to check your email. Claude calls the tool, reads the findings, and tells you what to change and why.</p>
+    <div class="section-wrap">
+      <h2>Two ways to use it</h2>
+      <div class="two-col">
+        <div>
+          <h3>Ask Claude in plain English</h3>
+          <p>Add the MCP server to Claude Desktop or Claude.ai and ask it to check your email. Claude calls the tool, reads the findings, and tells you what to change and why.</p>
+        </div>
+        <div>
+          <h3>Call it from Python</h3>
+          <p>Import <code style="font-family:'JetBrains Mono',monospace;font-size:13px">truvek_comply</code> into any script or pipeline. Returns structured JSON: verdict, findings tagged by law, and fix guidance.</p>
+        </div>
       </div>
-      <div>
-        <h3>Call it from Python</h3>
-        <p>Import <code style="font-family:'JetBrains Mono',monospace;font-size:13px">truvek_comply</code> into any script or pipeline. Returns structured JSON: verdict, findings tagged by law, and fix guidance.</p>
+      <div class="code-block">
+        <span class="code-comment"># Claude Desktop — claude_desktop_config.json</span><br>
+        {<br>
+        &nbsp;&nbsp;"mcpServers": {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;"truvek-comply": {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"command": "truvek-comply"<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+        &nbsp;&nbsp;}<br>
+        }<br>
+        <br>
+        <span class="code-comment"># Claude Code</span><br>
+        claude mcp add truvek-comply truvek-comply
       </div>
-    </div>
-    <div class="code-block">
-      <span class="code-comment"># Claude Desktop — claude_desktop_config.json</span><br>
-      {<br>
-      &nbsp;&nbsp;"mcpServers": {<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;"truvek-comply": {<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"command": "truvek-comply"<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;}<br>
-      &nbsp;&nbsp;}<br>
-      }<br>
-      <br>
-      <span class="code-comment"># Claude Code</span><br>
-      claude mcp add truvek-comply truvek-comply
     </div>
   </div>
 </section>
 
-<section>
+<section id="stakes">
   <div class="wrap">
-    <h2>The stakes</h2>
-    <p class="stakes-text">
-      ACMA has issued fines over 7 million AUD for consent failures and 700K AUD for transactional emails containing promotional content. The FTC enforces CAN-SPAM with fines up to 51,744 USD per email. CRTC enforces CASL with penalties up to 10 million CAD per violation.
-    </p>
-    <p class="stakes-text" style="margin-top:16px">Truvek Comply is a pre-send compliance tool, not legal advice.</p>
+    <div class="section-wrap">
+      <h2>What non-compliance costs</h2>
+      <p class="stakes-text">
+        <a href="https://www.acma.gov.au/enforcement-actions" target="_blank" rel="noopener">ACMA</a> has issued fines over 7 million AUD for consent failures, and 700K AUD for transactional emails containing promotional content.
+        The <a href="https://www.ftc.gov/business-guidance/resources/can-spam-act-compliance-guide-business" target="_blank" rel="noopener">FTC</a> enforces CAN-SPAM with fines up to 51,744 USD per email.
+        <a href="https://www.fightspam.gc.ca/eic/site/030.nsf/eng/home" target="_blank" rel="noopener">CRTC</a> enforces CASL with penalties up to 10 million CAD per violation.
+      </p>
+      <p class="disclaimer">Truvek Comply is a pre-send compliance tool, not legal advice.</p>
+    </div>
   </div>
 </section>
 
 <footer>
+  <!-- CMY strip at very top of footer — second of two appearances on page -->
+  <div class="cmy-strip" aria-hidden="true">
+    <span class="cmy-cyan"></span>
+    <span class="cmy-magenta"></span>
+    <span class="cmy-yellow"></span>
+    <span class="cmy-navy"></span>
+  </div>
   <div class="wrap">
-    <div class="foot-copy">Truvek Comply. MIT licence.</div>
-    <div class="foot-links">
-      <a href="https://github.com/Truckling/truvek-comply">GitHub</a>
-      <a href="https://pypi.org/project/truvek-comply/">PyPI</a>
-      <a href="/mcp">MCP endpoint</a>
+    <div class="foot-inner">
+      <div class="foot-copy">Truvek Comply, MIT licence.</div>
+      <div class="foot-links">
+        <a href="https://github.com/Truckling/truvek-comply">GitHub</a>
+        <a href="https://pypi.org/project/truvek-comply/">PyPI</a>
+        <a href="/mcp">MCP endpoint</a>
+      </div>
     </div>
   </div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
-  // Channel toggle
+  // ---- channel toggle ----
   document.querySelectorAll('input[name="channel"]').forEach(r => {
     r.addEventListener('change', () => {
       document.getElementById('subject-wrap').style.display = r.value === 'sms' ? 'none' : '';
     });
   });
 
-  // Image paste / upload -> OCR -> populate body field
+  // ---- copy buttons ----
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy);
+        btn.textContent = 'Copied';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1600);
+      } catch {}
+    });
+  });
+
+  // ---- image paste / upload -> OCR ----
   const pasteZone = document.getElementById('paste-zone');
   const preview   = document.getElementById('paste-preview');
   const ocrStatus = document.getElementById('ocr-status');
@@ -600,9 +676,11 @@
       const { data } = await Tesseract.recognize(url, 'eng');
       const text = data.text.trim();
       if (text) {
-        bodyField.value = (bodyField.value ? bodyField.value + '\n\n' : '') + text;
+        bodyField.value = text;
+        ocrStatus.textContent = 'Text extracted. Edit if needed, then run the check.';
+      } else {
+        ocrStatus.textContent = 'No readable text found. Paste the text manually.';
       }
-      ocrStatus.textContent = text ? 'Text extracted. Edit if needed, then run the check.' : 'No readable text found in image.';
     } catch {
       ocrStatus.textContent = 'Could not read image. Paste the text manually.';
     }
@@ -612,28 +690,22 @@
     const item = Array.from(e.clipboardData.items).find(i => i.type.startsWith('image/'));
     if (item) handleImage(item.getAsFile());
   });
-
   imgUpload.addEventListener('change', e => { if (e.target.files[0]) handleImage(e.target.files[0]); });
-
-  pasteZone.addEventListener('dragover', e => { e.preventDefault(); pasteZone.classList.add('drag-over'); });
-  pasteZone.addEventListener('dragleave', () => pasteZone.classList.remove('drag-over'));
+  pasteZone.addEventListener('dragover', e => { e.preventDefault(); pasteZone.style.borderColor = 'var(--rule-slate)'; });
+  pasteZone.addEventListener('dragleave', () => { pasteZone.style.borderColor = ''; });
   pasteZone.addEventListener('drop', e => {
     e.preventDefault();
-    pasteZone.classList.remove('drag-over');
+    pasteZone.style.borderColor = '';
     if (e.dataTransfer.files[0]) handleImage(e.dataTransfer.files[0]);
   });
 
-  // Run check
-  const submitBtn = document.getElementById('demo-submit');
-  const resultBox = document.getElementById('demo-result');
-
-  // Rule descriptions for the "why" line
+  // ---- why lookup ----
   const WHY = {
     consent_missing:          'The Spam Act, CASL, and GDPR each require a positive opt-in before sending commercial messages.',
     consent_missing_us:       'CAN-SPAM does not require prior consent, but opt-outs must be honoured promptly.',
     unsubscribe_missing:      'Every jurisdiction covered requires a working unsubscribe mechanism in every commercial message.',
     unsubscribe_login:        'Requiring login to unsubscribe is not permitted under the Spam Act, CASL, or GDPR.',
-    sender_missing:           'All four laws require the sender to be clearly identified in the message.',
+    sender_missing:           'All five laws require the sender to be clearly identified in the message.',
     physical_address_missing: 'CAN-SPAM and CASL both require a valid physical mailing address in commercial email.',
     transactional_promo:      'Mixing promotional content into transactional messages removes the transactional exemption under the Spam Act, CAN-SPAM, and CASL.',
     inferred_consent:         'Inferred or implied consent carries significant risk under the Spam Act and CASL, which both prefer express consent.',
@@ -643,20 +715,23 @@
     alpha_sender_unregistered:'From July 2026, ACMA requires alphanumeric SMS sender IDs to be registered.',
   };
 
-  submitBtn.addEventListener('click', async () => {
+  // ---- run check ----
+  const runBtn     = document.getElementById('run-check');
+  const rail       = document.getElementById('findings-rail');
+
+  runBtn.addEventListener('click', async () => {
     const channel = document.querySelector('input[name="channel"]:checked').value;
     const subject = document.getElementById('demo-subject').value.trim();
     const body    = bodyField.value.trim();
 
     if (!body) {
-      resultBox.innerHTML = '<div class="result-error">Paste a message body or extract text from a screenshot first.</div>';
-      resultBox.style.display = 'block';
+      rail.innerHTML = '<div class="check-error">Paste a message body first.</div>';
+      rail.style.display = 'block';
       return;
     }
 
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Checking...';
-    resultBox.style.display = 'none';
+    runBtn.disabled = true;
+    runBtn.textContent = 'Checking...';
 
     try {
       const res  = await fetch('/check', {
@@ -667,41 +742,45 @@
       const data = await res.json();
 
       if (data.error) {
-        resultBox.innerHTML = `<div class="result-error">${data.error}</div>`;
+        rail.innerHTML = `<div class="check-error">${data.error}</div>`;
       } else {
         const verdict        = data.verdict || 'unknown';
         const classification = (data.classification || {}).type || '';
         const findings       = data.findings || [];
 
-        let html = `<div class="result-verdict-row">
-          <span class="verdict-pill verdict-${verdict}">${verdict}</span>
+        let html = `<div class="verdict-row">
+          <span class="verdict-word verdict-${verdict}">${{ pass: 'Clear to send.', review: 'Needs review.', block: 'Do not send.' }[verdict] || verdict}</span>
           ${classification ? `<span class="result-class">${classification.replace(/_/g, ' ')}</span>` : ''}
         </div>`;
 
         if (findings.length === 0) {
-          html += '<div class="no-findings">Clear to send.</div>';
+          html += '<div class="clear-to-send">No issues found.</div>';
         } else {
-          for (const f of findings) {
+          findings.forEach((f, i) => {
             const why = WHY[f.rule_id] || '';
-            const jur = (f.jurisdiction || []).join(', ');
+            const jur = (f.jurisdiction || []).map(j => j.toUpperCase()).join(', ');
             html += `<div class="finding finding-${f.severity}" role="listitem">
+              <div class="finding-num">Finding ${i + 1}${jur ? ', ' + jur : ''}</div>
               <div class="finding-title">${f.trigger}</div>
               ${why ? `<div class="finding-why">${why}</div>` : ''}
-              ${f.fix ? `<div class="finding-fix"><strong>Fix:</strong> ${f.fix}${jur ? ' (' + jur.toUpperCase() + ')' : ''}</div>` : ''}
+              ${f.fix ? `<div class="finding-fix"><strong>Fix:</strong> ${f.fix}</div>` : ''}
             </div>`;
-          }
+          });
         }
 
-        resultBox.innerHTML = html;
+        rail.innerHTML = html;
       }
     } catch {
-      resultBox.innerHTML = '<div class="result-error">Could not reach the server. Try again.</div>';
+      rail.innerHTML = '<div class="check-error">Could not reach the server. Try again.</div>';
     }
 
-    resultBox.style.display = 'block';
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Run check';
+    rail.style.display = 'block';
+    runBtn.disabled = false;
+    runBtn.textContent = 'Run check';
   });
+
+  // Run the check on load so the sample email shows findings immediately
+  window.addEventListener('load', () => runBtn.click());
 </script>
 </body>
 </html>
