@@ -20,7 +20,7 @@ except Exception as e:
 
 try:
     from starlette.requests import Request
-    from starlette.responses import JSONResponse
+    from starlette.responses import JSONResponse, HTMLResponse
     print("[truvek-comply] starlette OK", flush=True)
 except Exception as e:
     print(f"[truvek-comply] ERROR importing starlette: {e}", flush=True)
@@ -46,8 +46,13 @@ except Exception as e:
 # legitimate requests because Railway rewrites the Host header internally.
 transport_security = TransportSecuritySettings(enable_dns_rebinding_protection=False)
 
-# Add /health directly to the MCPServer — avoids wrapping in a second Starlette app
-# which breaks the streamable-http routing context.
+_static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+
+@mcp.custom_route("/", methods=["GET"])
+async def index(request: Request) -> HTMLResponse:
+    with open(os.path.join(_static_dir, "index.html"), encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
 @mcp.custom_route("/health", methods=["GET"])
 async def health(request: Request) -> JSONResponse:
     return JSONResponse({"status": "ok", "service": "truvek-comply"})
