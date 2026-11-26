@@ -90,12 +90,18 @@ def classify_message(subject: str, body: str, channel: str = "email") -> dict:
     if newsletter and not transactional:
         reasons.append("Editorial newsletter signals detected (e.g. briefing, view online, subscribe).")
 
-    if transactional and promotional:
+    if transactional and promotional and not newsletter:
+        # Only flag as transactional_with_promotion when there are no newsletter
+        # signals. Newsletter emails routinely reference accounts/subscriptions
+        # in their footers — that's not a transactional message with promos bolted
+        # on, it's just a marketing email. Newsletter signals take precedence.
         msg_type = "transactional_with_promotion"
         reasons.append("Both transactional and promotional content found — treated as commercial.")
-    elif transactional:
+    elif transactional and not newsletter and not promotional:
         msg_type = "transactional"
-    elif promotional or newsletter:
+    elif promotional or newsletter or transactional:
+        # Covers: purely promotional, newsletter (with or without account footer),
+        # and the newsletter+promotional combo that was falsely flagging above.
         msg_type = "marketing"
     else:
         msg_type = "unclear"
