@@ -703,7 +703,9 @@ The Marketing Team</textarea>
       }
       if (text) {
         bodyField.value = text;
-        ocrStatus.textContent = 'Text extracted. Edit if needed, then run the check.';
+        ocrStatus.textContent = 'Text extracted. Running check...';
+        document.getElementById('run-check').click();
+        ocrStatus.textContent = 'Text extracted from file.';
       } else {
         ocrStatus.textContent = 'No text found in file. Paste the text manually.';
       }
