@@ -475,6 +475,20 @@ Shop now and save 20% on everything in store.
 The Marketing Team</textarea>
               </div>
               <div>
+                <label class="field-label" for="demo-consent">Consent status</label>
+                <select id="demo-consent" class="proof-input">
+                  <option value="unknown">Unknown</option>
+                  <option value="express">Express (opted in)</option>
+                  <option value="inferred">Inferred (existing customer)</option>
+                  <option value="none">None</option>
+                </select>
+              </div>
+              <div>
+                <label class="channel-opt" style="margin-top:2px">
+                  <input type="checkbox" id="demo-sender" style="accent-color:var(--press-navy)"> Sender is clearly identified in the message
+                </label>
+              </div>
+              <div>
                 <label class="field-label">Upload email file</label>
                 <div class="paste-zone" id="paste-zone" tabindex="0" role="button" aria-label="Upload an .html, .eml or .txt email file to extract text">
                   <input type="file" accept=".html,.htm,.eml,.txt,text/html,message/rfc822,text/plain" id="file-upload" aria-hidden="true">
@@ -685,9 +699,13 @@ The Marketing Team</textarea>
   }
 
   function extractFromEml(raw) {
-    // Subject (may be encoded or multi-line)
+    // Subject and From headers
     const subjectMatch = raw.match(/^Subject:\s*(.+?)(\r?\n(?![\t ]))/im);
     if (subjectMatch) subjectFld.value = subjectMatch[1].trim();
+    const fromMatch = raw.match(/^From:\s*(.+?)(\r?\n(?![\t ]))/im);
+    if (fromMatch && fromMatch[1].trim()) {
+      document.getElementById('demo-sender').checked = true;
+    }
 
     // Find MIME boundary
     const boundaryMatch = raw.match(/boundary=["']?([^"'\r\n;]+)["']?/i);
@@ -788,9 +806,11 @@ The Marketing Team</textarea>
   const rail       = document.getElementById('findings-rail');
 
   runBtn.addEventListener('click', async () => {
-    const channel = document.querySelector('input[name="channel"]:checked').value;
-    const subject = document.getElementById('demo-subject').value.trim();
-    const body    = bodyField.value.trim();
+    const channel          = document.querySelector('input[name="channel"]:checked').value;
+    const subject          = document.getElementById('demo-subject').value.trim();
+    const body             = bodyField.value.trim();
+    const consent          = document.getElementById('demo-consent').value;
+    const sender_identified = document.getElementById('demo-sender').checked;
 
     if (!body) {
       rail.innerHTML = '<div class="check-error">Paste a message body first.</div>';
@@ -805,7 +825,7 @@ The Marketing Team</textarea>
       const res  = await fetch('/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, body, channel }),
+        body: JSON.stringify({ subject, body, channel, consent, sender_identified }),
       });
       const data = await res.json();
 

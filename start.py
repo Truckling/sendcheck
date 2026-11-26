@@ -64,14 +64,18 @@ async def check(request: Request) -> JSONResponse:
         body = await request.json()
     except Exception:
         return JSONResponse({"error": "Invalid JSON"}, status_code=400)
-    subject = str(body.get("subject", "")).strip()
-    text = str(body.get("body", "")).strip()
-    channel = str(body.get("channel", "email")).strip()
+    subject  = str(body.get("subject", "")).strip()
+    text     = str(body.get("body", "")).strip()
+    channel  = str(body.get("channel", "email")).strip()
+    consent  = str(body.get("consent", "unknown")).strip()
+    sender_identified = bool(body.get("sender_identified", False))
     if not text:
         return JSONResponse({"error": "body is required"}, status_code=400)
     if channel not in ("email", "sms"):
         channel = "email"
-    result = _check_message(subject, text, channel, consent="unknown", sender_identified=False)
+    if consent not in ("express", "inferred", "none", "unknown"):
+        consent = "unknown"
+    result = _check_message(subject, text, channel, consent=consent, sender_identified=sender_identified)
     return JSONResponse(result)
 
 try:
