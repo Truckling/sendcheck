@@ -35,6 +35,7 @@ except Exception as e:
 
 try:
     from truvek_comply.server import mcp
+    from truvek_comply.checker import check_message as _check_message
     print("[truvek-comply] truvek_comply.server OK", flush=True)
 except Exception as e:
     print(f"[truvek-comply] ERROR importing truvek_comply.server: {e}", flush=True)
@@ -56,6 +57,22 @@ async def index(request: Request) -> HTMLResponse:
 @mcp.custom_route("/health", methods=["GET"])
 async def health(request: Request) -> JSONResponse:
     return JSONResponse({"status": "ok", "service": "truvek-comply"})
+
+@mcp.custom_route("/check", methods=["POST"])
+async def check(request: Request) -> JSONResponse:
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+    subject = str(body.get("subject", "")).strip()
+    text = str(body.get("body", "")).strip()
+    channel = str(body.get("channel", "email")).strip()
+    if not text:
+        return JSONResponse({"error": "body is required"}, status_code=400)
+    if channel not in ("email", "sms"):
+        channel = "email"
+    result = _check_message(subject, text, channel, consent="unknown", sender_identified=False)
+    return JSONResponse(result)
 
 try:
     app = mcp.streamable_http_app(transport_security=transport_security)

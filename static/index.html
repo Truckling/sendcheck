@@ -259,6 +259,112 @@
     .feature-block { }
     .feature-block p { font-size: 14px; color: var(--muted); line-height: 1.65; }
 
+    /* ---- demo ---- */
+    .demo-form { display: flex; flex-direction: column; gap: 16px; max-width: 680px; }
+    .demo-channel { display: flex; gap: 20px; }
+    .channel-opt {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .channel-opt input { accent-color: var(--green); cursor: pointer; }
+    .field-label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .demo-input, .demo-textarea {
+      width: 100%;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      padding: 10px 14px;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    .demo-input:focus, .demo-textarea:focus { border-color: var(--green); }
+    .demo-textarea { min-height: 140px; resize: vertical; line-height: 1.5; }
+    .btn-check {
+      align-self: flex-start;
+      background: var(--green);
+      color: #000;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 10px 22px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-check:hover { background: var(--green-dim); }
+    .btn-check:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .demo-result { margin-top: 28px; max-width: 680px; }
+    .result-verdict {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .verdict-pill {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 5px 14px;
+      border-radius: 20px;
+    }
+    .verdict-pass { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .verdict-review { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .verdict-block { background: rgba(239,68,68,0.15); color: #f87171; }
+    .result-classification { font-size: 13px; color: var(--muted); }
+    .findings-list { display: flex; flex-direction: column; gap: 10px; }
+    .finding {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-left-width: 3px;
+      border-radius: 6px;
+      padding: 14px 16px;
+    }
+    .finding-block { border-left-color: #f87171; }
+    .finding-review { border-left-color: #fbbf24; }
+    .finding-info { border-left-color: #a5b4fc; }
+    .finding-rule {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .finding-trigger { font-size: 14px; color: var(--text); margin-bottom: 6px; }
+    .finding-fix { font-size: 13px; color: var(--muted); }
+    .no-findings {
+      font-size: 14px;
+      color: #4ade80;
+      padding: 16px;
+      background: rgba(34,197,94,0.07);
+      border: 1px solid rgba(34,197,94,0.2);
+      border-radius: 6px;
+    }
+    .result-error {
+      font-size: 14px;
+      color: #f87171;
+      padding: 14px 16px;
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 6px;
+    }
+
     /* ---- footer ---- */
     footer {
       border-top: 1px solid var(--border);
@@ -318,6 +424,33 @@
       <span class="label" style="margin-left:8px">MCP endpoint</span>
       <code class="code-line">https://truvek.io/mcp</code>
     </div>
+  </div>
+</section>
+
+<section id="demo">
+  <div class="container">
+    <div class="section-label">Try it</div>
+    <h2>Check a message now</h2>
+    <div class="demo-form">
+      <div class="demo-channel">
+        <label class="channel-opt">
+          <input type="radio" name="channel" value="email" checked> Email
+        </label>
+        <label class="channel-opt">
+          <input type="radio" name="channel" value="sms"> SMS
+        </label>
+      </div>
+      <div class="demo-field" id="subject-field">
+        <label class="field-label" for="demo-subject">Subject line</label>
+        <input type="text" id="demo-subject" class="demo-input" placeholder="Your email subject">
+      </div>
+      <div class="demo-field">
+        <label class="field-label" for="demo-body">Message body</label>
+        <textarea id="demo-body" class="demo-textarea" placeholder="Paste your email or SMS body here..."></textarea>
+      </div>
+      <button class="btn-check" id="demo-submit">Check it</button>
+    </div>
+    <div id="demo-result" class="demo-result" hidden></div>
   </div>
 </section>
 
@@ -481,5 +614,76 @@
   </div>
 </footer>
 
+<script>
+  const form = document.getElementById('demo-submit');
+  const resultBox = document.getElementById('demo-result');
+  const subjectField = document.getElementById('subject-field');
+
+  document.querySelectorAll('input[name="channel"]').forEach(r => {
+    r.addEventListener('change', () => {
+      subjectField.style.display = r.value === 'sms' ? 'none' : '';
+    });
+  });
+
+  form.addEventListener('click', async () => {
+    const channel = document.querySelector('input[name="channel"]:checked').value;
+    const subject = document.getElementById('demo-subject').value.trim();
+    const body = document.getElementById('demo-body').value.trim();
+
+    if (!body) {
+      resultBox.hidden = false;
+      resultBox.innerHTML = '<div class="result-error">Paste a message body first.</div>';
+      return;
+    }
+
+    form.disabled = true;
+    form.textContent = 'Checking...';
+    resultBox.hidden = true;
+
+    try {
+      const res = await fetch('/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, body, channel }),
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        resultBox.innerHTML = `<div class="result-error">${data.error}</div>`;
+      } else {
+        const verdict = data.verdict || 'unknown';
+        const classification = (data.classification || {}).type || '';
+        const findings = data.findings || [];
+
+        let html = `<div class="result-verdict">
+          <span class="verdict-pill verdict-${verdict}">${verdict}</span>
+          ${classification ? `<span class="result-classification">${classification.replace(/_/g, ' ')}</span>` : ''}
+        </div>`;
+
+        if (findings.length === 0) {
+          html += '<div class="no-findings">No issues found.</div>';
+        } else {
+          html += '<div class="findings-list">';
+          for (const f of findings) {
+            html += `<div class="finding finding-${f.severity}">
+              <div class="finding-rule">${f.rule_id} &middot; ${f.severity.toUpperCase()} &middot; ${(f.jurisdiction || []).join(', ')}</div>
+              <div class="finding-trigger">${f.trigger}</div>
+              ${f.fix ? `<div class="finding-fix">Fix: ${f.fix}</div>` : ''}
+            </div>`;
+          }
+          html += '</div>';
+        }
+
+        resultBox.innerHTML = html;
+      }
+    } catch (e) {
+      resultBox.innerHTML = '<div class="result-error">Something went wrong. Try again.</div>';
+    }
+
+    resultBox.hidden = false;
+    form.disabled = false;
+    form.textContent = 'Check it';
+  });
+</script>
 </body>
 </html>
