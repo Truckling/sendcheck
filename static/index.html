@@ -637,7 +637,6 @@ The Marketing Team</textarea>
   </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
   // ---- channel toggle ----
   document.querySelectorAll('input[name="channel"]').forEach(r => {
@@ -658,7 +657,7 @@ The Marketing Team</textarea>
     });
   });
 
-  // ---- image paste / upload -> OCR ----
+  // ---- image paste / upload -> server-side extraction ----
   const pasteZone = document.getElementById('paste-zone');
   const preview   = document.getElementById('paste-preview');
   const ocrStatus = document.getElementById('ocr-status');
@@ -672,18 +671,28 @@ The Marketing Team</textarea>
     preview.style.display = 'block';
     ocrStatus.style.display = 'block';
     ocrStatus.textContent = 'Reading text from image...';
-    try {
-      const { data } = await Tesseract.recognize(url, 'eng');
-      const text = data.text.trim();
-      if (text) {
-        bodyField.value = text;
-        ocrStatus.textContent = 'Text extracted. Edit if needed, then run the check.';
-      } else {
-        ocrStatus.textContent = 'No readable text found. Paste the text manually.';
+
+    // Convert to base64 data URL
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const res = await fetch('/extract-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: e.target.result }),
+        });
+        const data = await res.json();
+        if (data.text) {
+          bodyField.value = data.text;
+          ocrStatus.textContent = 'Text extracted. Edit if needed, then run the check.';
+        } else {
+          ocrStatus.textContent = data.error || 'No text found. Paste it manually.';
+        }
+      } catch {
+        ocrStatus.textContent = 'Could not read image. Paste the text manually.';
       }
-    } catch {
-      ocrStatus.textContent = 'Could not read image. Paste the text manually.';
-    }
+    };
+    reader.readAsDataURL(file);
   }
 
   document.addEventListener('paste', e => {
