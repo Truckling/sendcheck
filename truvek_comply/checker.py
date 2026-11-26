@@ -159,9 +159,12 @@ def check_message(
     """
     findings = []
 
-    # Use ML model if trained, otherwise fall back to patterns
+    # Use ML model if trained and confident, otherwise fall back to patterns.
+    # Below 75% the model is unreliable on out-of-distribution emails (legal
+    # notices, admin messages, etc.) and pattern-based is more accurate.
+    ML_CONFIDENCE_FLOOR = 0.85
     ml_result = ml_classifier.classify(subject, body)
-    if ml_result:
+    if ml_result and ml_result["confidence"] >= ML_CONFIDENCE_FLOOR:
         classification = {
             "type": ml_result["type"],
             "reasons": [f"ML classifier (confidence {ml_result['confidence']:.0%})."],
@@ -169,6 +172,10 @@ def check_message(
         }
     else:
         classification = classify_message(subject, body, channel)
+        if ml_result:
+            classification["reasons"].append(
+                f"ML classifier confidence too low ({ml_result['confidence']:.0%}) — pattern-based used."
+            )
 
     msg_type = classification["type"]
 
