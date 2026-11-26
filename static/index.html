@@ -237,7 +237,6 @@
     .paste-zone input[type="file"] {
       position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
     }
-    .paste-preview { max-width: 100%; max-height: 120px; margin-top: 8px; display: none; border-radius: 2px; }
     .ocr-status { font-size: 12px; color: var(--text-muted); margin-top: 4px; display: none; }
 
     .run-btn {
@@ -476,11 +475,10 @@ Shop now and save 20% on everything in store.
 The Marketing Team</textarea>
               </div>
               <div>
-                <label class="field-label">Paste a screenshot</label>
-                <div class="paste-zone" id="paste-zone" tabindex="0" role="button" aria-label="Paste or upload a screenshot of your email to extract text">
-                  <input type="file" accept="image/*" id="img-upload" aria-hidden="true">
-                  Paste an image (Ctrl+V) or click to upload
-                  <img class="paste-preview" id="paste-preview" alt="Pasted screenshot">
+                <label class="field-label">Upload email file</label>
+                <div class="paste-zone" id="paste-zone" tabindex="0" role="button" aria-label="Upload an .html, .eml or .txt email file to extract text">
+                  <input type="file" accept=".html,.htm,.eml,.txt,text/html,message/rfc822,text/plain" id="file-upload" aria-hidden="true">
+                  Upload .html, .eml or .txt — text is extracted automatically
                   <div class="ocr-status" id="ocr-status"></div>
                 </div>
               </div>
@@ -657,55 +655,69 @@ The Marketing Team</textarea>
     });
   });
 
-  // ---- image paste / upload -> server-side extraction ----
-  const pasteZone = document.getElementById('paste-zone');
-  const preview   = document.getElementById('paste-preview');
-  const ocrStatus = document.getElementById('ocr-status');
-  const bodyField = document.getElementById('demo-body');
-  const imgUpload = document.getElementById('img-upload');
+  // ---- file upload: .html, .eml, .txt -> extract text ----
+  const pasteZone  = document.getElementById('paste-zone');
+  const ocrStatus  = document.getElementById('ocr-status');
+  const bodyField  = document.getElementById('demo-body');
+  const subjectFld = document.getElementById('demo-subject');
+  const fileUpload = document.getElementById('file-upload');
 
-  async function handleImage(file) {
-    if (!file || !file.type.startsWith('image/')) return;
-    const url = URL.createObjectURL(file);
-    preview.src = url;
-    preview.style.display = 'block';
-    ocrStatus.style.display = 'block';
-    ocrStatus.textContent = 'Reading text from image...';
-
-    // Convert to base64 data URL
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const res = await fetch('/extract-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: e.target.result }),
-        });
-        const data = await res.json();
-        if (data.text) {
-          bodyField.value = data.text;
-          ocrStatus.textContent = 'Text extracted. Edit if needed, then run the check.';
-        } else {
-          ocrStatus.textContent = data.error || 'No text found. Paste it manually.';
-        }
-      } catch {
-        ocrStatus.textContent = 'Could not read image. Paste the text manually.';
-      }
-    };
-    reader.readAsDataURL(file);
+  function extractTextFromHtml(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('script, style, head').forEach(el => el.remove());
+    return (doc.body.innerText || doc.body.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
   }
 
-  document.addEventListener('paste', e => {
-    const item = Array.from(e.clipboardData.items).find(i => i.type.startsWith('image/'));
-    if (item) handleImage(item.getAsFile());
-  });
-  imgUpload.addEventListener('change', e => { if (e.target.files[0]) handleImage(e.target.files[0]); });
+  function extractFromEml(raw) {
+    // Find subject header
+    const subjectMatch = raw.match(/^Subject:\s*(.+?)(?:\r?\n(?![ \t]))/im);
+    if (subjectMatch) subjectFld.value = subjectMatch[1].trim();
+
+    // Find text/plain part first, fall back to text/html
+    const plainMatch = raw.match(/Content-Type:\s*text\/plain[\s\S]*?\r?\n\r?\n([\s\S]+?)(?=\r?\n--|\r?\n\r?\nContent-Type:|$)/i);
+    if (plainMatch) return plainMatch[1].replace(/=\r?\n/g, '').trim();
+
+    const htmlMatch = raw.match(/Content-Type:\s*text\/html[\s\S]*?\r?\n\r?\n([\s\S]+?)(?=\r?\n--|\r?\n\r?\nContent-Type:|$)/i);
+    if (htmlMatch) return extractTextFromHtml(htmlMatch[1].replace(/=\r?\n/g, ''));
+
+    // No MIME parts — treat whole body as plain text
+    const bodyStart = raw.indexOf('\r\n\r\n');
+    return bodyStart >= 0 ? raw.slice(bodyStart + 4).trim() : raw.trim();
+  }
+
+  function handleFile(file) {
+    if (!file) return;
+    ocrStatus.style.display = 'block';
+    ocrStatus.textContent = 'Reading file...';
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const raw = e.target.result;
+      let text = '';
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.eml')) {
+        text = extractFromEml(raw);
+      } else if (name.endsWith('.html') || name.endsWith('.htm') || file.type === 'text/html') {
+        text = extractTextFromHtml(raw);
+      } else {
+        text = raw.trim();
+      }
+      if (text) {
+        bodyField.value = text;
+        ocrStatus.textContent = 'Text extracted. Edit if needed, then run the check.';
+      } else {
+        ocrStatus.textContent = 'No text found in file. Paste the text manually.';
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  fileUpload.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
   pasteZone.addEventListener('dragover', e => { e.preventDefault(); pasteZone.style.borderColor = 'var(--rule-slate)'; });
   pasteZone.addEventListener('dragleave', () => { pasteZone.style.borderColor = ''; });
   pasteZone.addEventListener('drop', e => {
     e.preventDefault();
     pasteZone.style.borderColor = '';
-    if (e.dataTransfer.files[0]) handleImage(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
   });
 
   // ---- why lookup ----

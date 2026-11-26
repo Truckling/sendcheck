@@ -58,40 +58,6 @@ async def index(request: Request) -> HTMLResponse:
 async def health(request: Request) -> JSONResponse:
     return JSONResponse({"status": "ok", "service": "truvek-comply"})
 
-@mcp.custom_route("/extract-image", methods=["POST"])
-async def extract_image(request: Request) -> JSONResponse:
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-    if not api_key:
-        return JSONResponse({"error": "Image extraction not configured on this server."}, status_code=503)
-    try:
-        body = await request.json()
-        data_url = str(body.get("image", ""))
-        if not data_url:
-            return JSONResponse({"error": "No image provided."}, status_code=400)
-        # Parse data URL: "data:image/png;base64,<data>"
-        if "," in data_url:
-            header, b64 = data_url.split(",", 1)
-            media_type = header.split(":")[1].split(";")[0] if ":" in header else "image/jpeg"
-        else:
-            b64, media_type = data_url, "image/jpeg"
-        import anthropic as _anthropic
-        client = _anthropic.Anthropic(api_key=api_key)
-        msg = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=2048,
-            messages=[{
-                "role": "user",
-                "content": [
-                    {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
-                    {"type": "text", "text": "Extract all readable text from this email screenshot. Return only the text content, preserving structure where possible. Include the subject line if visible. No commentary."}
-                ]
-            }]
-        )
-        return JSONResponse({"text": msg.content[0].text})
-    except Exception as e:
-        return JSONResponse({"error": f"Could not read image: {e}"}, status_code=500)
-
-
 @mcp.custom_route("/check", methods=["POST"])
 async def check(request: Request) -> JSONResponse:
     try:
