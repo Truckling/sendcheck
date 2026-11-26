@@ -126,27 +126,21 @@
     }
     .btn-secondary:hover { border-color: var(--muted); color: var(--text); text-decoration: none; }
 
-    /* ---- install strip ---- */
-    .install-strip {
-      background: var(--bg2);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      padding: 18px 0;
-    }
-    .install-strip .inner {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 48px;
+    /* ---- install row (inside hero container, not full-bleed) ---- */
+    .install-row {
       display: flex;
       align-items: center;
       gap: 16px;
       flex-wrap: wrap;
+      margin-top: 36px;
+      padding-top: 28px;
+      border-top: 1px solid var(--border);
     }
-    .install-strip .label { font-size: 13px; color: var(--muted); }
+    .install-row .label { font-size: 13px; color: var(--muted); }
     .code-line {
       font-family: var(--mono);
       font-size: 14px;
-      background: var(--bg3);
+      background: var(--bg2);
       border: 1px solid var(--border);
       padding: 8px 14px;
       border-radius: 5px;
@@ -193,7 +187,14 @@
       border-radius: 8px;
       padding: 20px;
     }
-    .jur-card .flag { font-size: 24px; margin-bottom: 10px; }
+    .jur-card .cc {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
     .jur-card .law { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
     .jur-card .region { font-size: 12px; color: var(--muted); }
 
@@ -311,17 +312,14 @@
         View on GitHub
       </a>
     </div>
+    <div class="install-row">
+      <span class="label">Install</span>
+      <code class="code-line">pip install truvek-comply</code>
+      <span class="label" style="margin-left:8px">MCP endpoint</span>
+      <code class="code-line">https://truvek.io/mcp</code>
+    </div>
   </div>
 </section>
-
-<div class="install-strip">
-  <div class="inner">
-    <span class="label">Install</span>
-    <code class="code-line">pip install truvek-comply</code>
-    <span class="label" style="margin-left:8px">MCP endpoint</span>
-    <code class="code-line">https://truvek.io/mcp</code>
-  </div>
-</div>
 
 <section id="laws">
   <div class="container">
@@ -329,27 +327,27 @@
     <h2>Four laws, one check</h2>
     <div class="jur-grid">
       <div class="jur-card">
-        <div class="flag">🇦🇺</div>
+        <div class="cc">AU</div>
         <div class="law">Spam Act 2003</div>
         <div class="region">Australia — email + SMS</div>
       </div>
       <div class="jur-card">
-        <div class="flag">🇺🇸</div>
+        <div class="cc">US</div>
         <div class="law">CAN-SPAM Act</div>
         <div class="region">United States — email</div>
       </div>
       <div class="jur-card">
-        <div class="flag">🇺🇸</div>
+        <div class="cc">US</div>
         <div class="law">TCPA</div>
         <div class="region">United States — SMS</div>
       </div>
       <div class="jur-card">
-        <div class="flag">🇨🇦</div>
+        <div class="cc">CA</div>
         <div class="law">CASL</div>
         <div class="region">Canada — email + SMS</div>
       </div>
       <div class="jur-card">
-        <div class="flag">🇪🇺</div>
+        <div class="cc">EU</div>
         <div class="law">GDPR / ePrivacy</div>
         <div class="region">European Union — email + SMS</div>
       </div>
