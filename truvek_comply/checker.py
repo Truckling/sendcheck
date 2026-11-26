@@ -38,7 +38,8 @@ LOGIN_WALL_PATTERNS = [
 NEWSLETTER_CONTENT_PATTERNS = [
     r'\b(newsletter|briefing|morning briefing|morning update|news update|daily update|weekly update)\b',
     r'\b(top stories|breaking news|latest news|live updates|round.?up)\b',
-    r'\b(edition|issue|digest)\b',
+    r'\b(edition|digest)\b',
+    r'\b(this issue|latest issue|current issue)\b',
     r'\bsportsmail\b',
     r'\b(live free agency|live trade|live scores|live blog)\b',
     r'\bBREAKING\b',
