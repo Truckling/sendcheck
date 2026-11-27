@@ -257,6 +257,7 @@
 
     /* CMY strip — appears here (under proof) and top of footer only */
     .cmy-strip { display: flex; height: 6px; }
+    .hero .cmy-strip { margin-top: 12px; }
     .cmy-strip span { flex: 1; }
     .cmy-cyan    { background: var(--cyan); }
     .cmy-magenta { background: var(--magenta); }
@@ -867,8 +868,7 @@ The Marketing Team</textarea>
     runBtn.textContent = 'Run check';
   });
 
-  // Run the check on load so the sample email shows findings immediately
-  window.addEventListener('load', () => runBtn.click());
+  // Do not auto-run on load — user triggers the check manually.
 </script>
 </body>
 </html>
