@@ -383,6 +383,14 @@
     }
     .code-comment { color: var(--rule-slate); }
 
+    /* ---- api ---- */
+    .api-params { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 28px; }
+    .api-params th { text-align: left; font-weight: 500; color: var(--text-muted); font-size: 13px; padding: 0 12px 10px 0; border-bottom: 1px solid var(--rule-light); }
+    .api-params td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--rule-light); vertical-align: top; color: var(--text-muted); line-height: 1.5; }
+    .api-params td:first-child { color: var(--press-navy); font-weight: 500; white-space: nowrap; }
+    .api-params td code, .api-params th code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    .api-params tr:last-child td { border-bottom: none; }
+
     /* ---- stakes ---- */
     .stakes-text { font-size: 15px; color: var(--text-muted); max-width: 640px; line-height: 1.75; }
     .stakes-text a { color: var(--cyan-ink); }
@@ -413,6 +421,7 @@
       <div class="nav-links">
         <a href="#rules">Rules</a>
         <a href="#usage">Usage</a>
+        <a href="#api">API</a>
         <a href="https://github.com/Truckling/truvek-comply">GitHub</a>
         <a href="https://pypi.org/project/truvek-comply/">PyPI</a>
       </div>
@@ -612,6 +621,53 @@ The Marketing Team</textarea>
         <span class="code-comment"># Claude Code</span><br>
         claude mcp add truvek-comply truvek-comply
       </div>
+    </div>
+  </div>
+</section>
+
+<section id="api">
+  <div class="wrap">
+    <div class="section-wrap">
+      <h2>Connect your platform</h2>
+      <div class="two-col">
+        <div>
+          <h3>HTTP API</h3>
+          <p>POST to <code style="font-family:'JetBrains Mono',monospace;font-size:13px">https://truvek.io/check</code> from any CRM, pipeline, or pre-send hook. No SDK or account needed. Returns verdict, findings by jurisdiction, and fix guidance in JSON.</p>
+        </div>
+        <div>
+          <h3>Response fields</h3>
+          <p><code style="font-family:'JetBrains Mono',monospace;font-size:13px">verdict</code> is <code style="font-family:'JetBrains Mono',monospace;font-size:13px">pass</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:13px">review</code>, or <code style="font-family:'JetBrains Mono',monospace;font-size:13px">block</code>. Gate your send on <code style="font-family:'JetBrains Mono',monospace;font-size:13px">block</code>. Queue for review on <code style="font-family:'JetBrains Mono',monospace;font-size:13px">review</code>. Each finding includes the rule, jurisdiction, and a plain-English fix.</p>
+        </div>
+      </div>
+      <div class="code-block"><span class="code-comment"># Request</span><br>
+curl -X POST https://truvek.io/check \<br>
+&nbsp;&nbsp;-H "Content-Type: application/json" \<br>
+&nbsp;&nbsp;-d '{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"subject": "Your order has shipped",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"body":    "Full message text here...",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"channel": "email",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"consent": "express",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"sender_identified": true<br>
+&nbsp;&nbsp;}'<br>
+<br>
+<span class="code-comment"># Response</span><br>
+{<br>
+&nbsp;&nbsp;"verdict": "pass",<br>
+&nbsp;&nbsp;"findings": [],<br>
+&nbsp;&nbsp;"classification": { "type": "transactional" }<br>
+}</div>
+      <table class="api-params">
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Values</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>subject</code></td><td>string</td><td>Email subject line. Leave empty for SMS.</td></tr>
+          <tr><td><code>body</code></td><td>string</td><td>Full message body, plain text.</td></tr>
+          <tr><td><code>channel</code></td><td>string</td><td><code>email</code> or <code>sms</code>. Default: <code>email</code>.</td></tr>
+          <tr><td><code>consent</code></td><td>string</td><td><code>express</code>, <code>inferred</code>, <code>none</code>, or <code>unknown</code>. Default: <code>unknown</code>.</td></tr>
+          <tr><td><code>sender_identified</code></td><td>boolean</td><td>True if the sender's name and contact details appear in the message.</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </section>
