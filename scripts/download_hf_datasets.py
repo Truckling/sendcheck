@@ -1,21 +1,24 @@
 """
-download_hf_datasets.py — Download HuggingFace email datasets and merge into emails.jsonl.
+download_hf_datasets.py — Download HuggingFace email/SMS datasets and merge into emails.jsonl.
 
 Freely accessible (no account needed):
-  - Harshal3467/multiclass-email-classification (2,105 emails, MIT)
+  - Harshal3467/multiclass-email-classification  (~2k emails)
+  - SetFit/enron_spam                            (~34k emails, spam/ham)
+  - Deysi/spam-detection-dataset                 (~8k emails)
+  - ucirvine/sms_spam                            (~6k SMS)
 
 Requires a free HuggingFace account + token:
-  - jason23322/high-accuracy-email-classifier (12K emails, Apache 2.0)
-    To unlock: sign up at huggingface.co, go to the dataset page and
-    accept the terms, then run: huggingface-cli login
+  - jason23322/high-accuracy-email-classifier    (~12k emails)
+    To unlock: sign up at huggingface.co, go to the dataset page, accept
+    the terms, then run: huggingface-cli login
 
-Label mapping to SendCheck's four classes:
+Label mapping target classes:
   marketing, transactional, transactional_with_promotion, unclear
 
 Usage:
-    python download_hf_datasets.py              # download all accessible datasets
-    python download_hf_datasets.py --dry-run    # show mapping without writing
-    python download_hf_datasets.py --hf-token TOKEN  # use a specific HF token
+    python download_hf_datasets.py              # all accessible datasets
+    python download_hf_datasets.py --dry-run    # show counts without writing
+    python download_hf_datasets.py --hf-token TOKEN
 """
 
 import argparse
@@ -37,130 +40,194 @@ except ImportError:
 
 OUTPUT_FILE = Path(__file__).parent / "emails.jsonl"
 
+
 # --- Label mappings ---
 
 HARSHAL_MAP = {
-    # Clear marketing signals
     "Promotions":           "marketing",
     "Newsletters":          "marketing",
-    # Transactional — triggered by user action, no promotional content expected
     "Finance & Bills":      "transactional",
     "Travel & Bookings":    "transactional",
     "Customer Support":     "transactional",
     "Reminders":            "transactional",
-    # Ambiguous — keep but flag as unclear
     "Business":             "unclear",
     "Events & Invitations": "unclear",
-    # Out of scope — skip
     "Personal":             None,
     "Job Application":      None,
 }
 
 JASON_MAP = {
     "promotions":   "marketing",
-    "forum":        "marketing",        # community newsletters are commercial
-    "updates":      "transactional",    # service/account updates
-    "verify_code":  "transactional",    # OTP/auth emails
-    "social_media": "unclear",          # social notifications
-    "spam":         None,               # skip — spam is out of scope
+    "forum":        "marketing",
+    "updates":      "transactional",
+    "verify_code":  "transactional",
+    "social_media": "unclear",
+    "spam":         None,
+}
+
+# Enron: ham = internal business / transactional; spam = out of scope
+ENRON_MAP = {
+    "ham":  "transactional",
+    "spam": None,
+}
+
+# Deysi: not_spam = mixed (needs pattern classifier to sub-classify);
+# spam = out of scope (actual unsolicited spam, not marketing)
+DEYSI_MAP = {
+    "not_spam": "unclear",
+    "spam":     None,
+}
+
+# UCI SMS: 0 = ham (legitimate SMS), 1 = spam (unsolicited)
+SMS_UCI_MAP = {
+    0: "transactional",
+    1: None,
 }
 
 
-def make_entry(source_name, original_label, mapped_label, subject, body):
-    """Create an emails.jsonl entry matching the format from fetch_training_data.py."""
-    # Deterministic ID so re-runs don't create duplicates
-    fingerprint = hashlib.sha256(f"{source_name}|{original_label}|{subject}|{body}".encode()).hexdigest()[:16]
+def make_entry(source_name, original_label, mapped_label, subject, body, channel="email"):
+    fingerprint = hashlib.sha256(
+        f"{source_name}|{original_label}|{subject}|{body[:200]}".encode()
+    ).hexdigest()[:16]
     return {
         "id": f"hf:{source_name}:{fingerprint}",
         "subject": subject or "",
         "sender": "",
+        "channel": channel,
         "body_snippet": (body or "")[:500],
         "body": body or "",
         "draft_label": mapped_label,
-        "human_label": mapped_label,  # treat dataset labels as ground truth
+        "human_label": mapped_label,
         "source": f"hf:{source_name}",
         "original_label": original_label,
     }
 
 
-def process_harshal(dry_run=False):
-    """Process Harshal3467/multiclass-email-classification (no auth needed)."""
-    print("\nDownloading Harshal3467/multiclass-email-classification...")
+def _load(name, split="train"):
+    """Load a HF dataset split, return None on failure."""
     try:
-        ds = load_dataset("Harshal3467/multiclass-email-classification", split="train")
+        return load_dataset(name, split=split)
     except Exception as e:
-        print(f"  Failed: {e}")
+        msg = str(e)
+        if "gated" in msg or "authenticated" in msg or "authentication" in msg.lower():
+            print(f"  Skipped — requires HuggingFace login.")
+            print(f"  Run: huggingface-cli login")
+        elif "doesn't exist" in msg or "cannot be accessed" in msg:
+            print(f"  Not found on Hub.")
+        else:
+            print(f"  Error: {msg[:120]}")
+        return None
+
+
+def process_harshal(dry_run=False):
+    print("\nHarshal3467/multiclass-email-classification...")
+    ds = _load("Harshal3467/multiclass-email-classification")
+    if ds is None:
         return []
-
     print(f"  {len(ds)} emails loaded.")
-
-    entries = []
-    skipped = Counter()
-    mapped = Counter()
-
+    entries, skipped, mapped = [], Counter(), Counter()
     for row in ds:
-        # Labels are a list — take the most specific one (last in list)
         raw_labels = row.get("labels") or []
         label = raw_labels[-1] if raw_labels else ""
-
-        subject = str(row.get("subject") or "")
-        body = str(row.get("body") or "")
-
         mapped_label = HARSHAL_MAP.get(label)
         if mapped_label is None:
             skipped[label] += 1
             continue
-
         mapped[mapped_label] += 1
         if not dry_run:
-            entries.append(make_entry("Harshal3467", label, mapped_label, subject, body))
-
-    print(f"  Mapped:  {dict(mapped)}")
-    print(f"  Skipped: {dict(skipped)}")
+            entries.append(make_entry(
+                "Harshal3467", label, mapped_label,
+                str(row.get("subject") or ""),
+                str(row.get("body") or ""),
+            ))
+    print(f"  Mapped: {dict(mapped)}  Skipped: {dict(skipped)}")
     return entries
 
 
 def process_jason(dry_run=False):
-    """Process jason23322/high-accuracy-email-classifier (requires HF account)."""
-    print("\nDownloading jason23322/high-accuracy-email-classifier...")
-    try:
-        ds = load_dataset("jason23322/high-accuracy-email-classifier", split="train")
-    except Exception as e:
-        msg = str(e)
-        if "gated" in msg or "authenticated" in msg or "authentication" in msg.lower():
-            print("  Skipped — dataset requires a HuggingFace account.")
-            print("  To unlock:")
-            print("    1. Sign up at huggingface.co (free)")
-            print("    2. Go to huggingface.co/datasets/jason23322/high-accuracy-email-classifier")
-            print("    3. Accept the dataset terms")
-            print("    4. Run: huggingface-cli login")
-            print("    5. Re-run this script")
-        else:
-            print(f"  Failed: {msg[:120]}")
+    print("\njason23322/high-accuracy-email-classifier...")
+    ds = _load("jason23322/high-accuracy-email-classifier")
+    if ds is None:
         return []
-
     print(f"  {len(ds)} emails loaded.")
-
-    entries = []
-    skipped = Counter()
-    mapped = Counter()
-
+    entries, skipped, mapped = [], Counter(), Counter()
     for row in ds:
         label = str(row.get("label") or row.get("category") or row.get("class") or "")
         body = str(row.get("text") or row.get("body") or row.get("email") or row.get("content") or "")
         subject = str(row.get("subject") or "")
-
         mapped_label = JASON_MAP.get(label)
         if mapped_label is None:
             skipped[label] += 1
             continue
-
         mapped[mapped_label] += 1
         if not dry_run:
             entries.append(make_entry("jason23322", label, mapped_label, subject, body))
+    print(f"  Mapped: {dict(mapped)}  Skipped: {dict(skipped)}")
+    return entries
 
-    print(f"  Mapped:  {dict(mapped)}")
-    print(f"  Skipped: {dict(skipped)}")
+
+def process_enron(dry_run=False):
+    print("\nSetFit/enron_spam (train + test)...")
+    entries, skipped, mapped = [], Counter(), Counter()
+    for split in ("train", "test"):
+        ds = _load("SetFit/enron_spam", split=split)
+        if ds is None:
+            continue
+        print(f"  {split}: {len(ds)} rows")
+        for row in ds:
+            label = str(row.get("label_text") or "")
+            mapped_label = ENRON_MAP.get(label)
+            if mapped_label is None:
+                skipped[label] += 1
+                continue
+            subject = str(row.get("subject") or "")
+            body = str(row.get("message") or row.get("text") or "")
+            mapped[mapped_label] += 1
+            if not dry_run:
+                entries.append(make_entry("SetFit_enron", label, mapped_label, subject, body))
+    print(f"  Mapped: {dict(mapped)}  Skipped: {dict(skipped)}")
+    return entries
+
+
+def process_deysi(dry_run=False):
+    print("\nDeysi/spam-detection-dataset...")
+    ds = _load("Deysi/spam-detection-dataset")
+    if ds is None:
+        return []
+    print(f"  {len(ds)} rows loaded.")
+    entries, skipped, mapped = [], Counter(), Counter()
+    for row in ds:
+        label = str(row.get("label") or "")
+        mapped_label = DEYSI_MAP.get(label)
+        if mapped_label is None:
+            skipped[label] += 1
+            continue
+        body = str(row.get("text") or "")
+        mapped[mapped_label] += 1
+        if not dry_run:
+            entries.append(make_entry("Deysi", label, mapped_label, "", body))
+    print(f"  Mapped: {dict(mapped)}  Skipped: {dict(skipped)}")
+    return entries
+
+
+def process_uci_sms(dry_run=False):
+    print("\nucirvine/sms_spam...")
+    ds = _load("ucirvine/sms_spam")
+    if ds is None:
+        return []
+    print(f"  {len(ds)} SMS loaded.")
+    entries, skipped, mapped = [], Counter(), Counter()
+    for row in ds:
+        label = row.get("label")
+        mapped_label = SMS_UCI_MAP.get(label)
+        if mapped_label is None:
+            skipped[str(label)] += 1
+            continue
+        body = str(row.get("sms") or "")
+        mapped[mapped_label] += 1
+        if not dry_run:
+            entries.append(make_entry("ucirvine_sms", str(label), mapped_label, "", body, channel="sms"))
+    print(f"  Mapped: {dict(mapped)}  Skipped: {dict(skipped)}")
     return entries
 
 
@@ -194,9 +261,17 @@ def main():
     all_entries = []
     all_entries += process_harshal(args.dry_run)
     all_entries += process_jason(args.dry_run)
+    all_entries += process_enron(args.dry_run)
+    all_entries += process_deysi(args.dry_run)
+    all_entries += process_uci_sms(args.dry_run)
 
     if args.dry_run:
-        print(f"\nWould add up to {len(all_entries)} entries to emails.jsonl")
+        total = len(all_entries)
+        by_label = Counter(e["human_label"] for e in all_entries)
+        by_channel = Counter(e.get("channel", "email") for e in all_entries)
+        print(f"\nWould add up to {total} entries")
+        print(f"By label:   {dict(by_label)}")
+        print(f"By channel: {dict(by_channel)}")
         return
 
     existing_ids = load_existing_hf_ids()
@@ -206,27 +281,29 @@ def main():
         for e in new_entries:
             fh.write(json.dumps(e, ensure_ascii=False) + "\n")
 
-    print(f"\n{len(new_entries)} entries added to {OUTPUT_FILE}")
+    print(f"\n{len(new_entries)} new entries added ({len(all_entries) - len(new_entries)} already existed).")
 
     # Final breakdown
-    all_emails = []
-    with open(OUTPUT_FILE, encoding="utf-8") as fh:
+    all_data = []
+    with open(OUTPUT_FILE, encoding="utf-8", errors="replace") as fh:
         for line in fh:
             try:
-                all_emails.append(json.loads(line))
+                all_data.append(json.loads(line))
             except json.JSONDecodeError:
                 continue
 
     effective = lambda e: e.get("human_label") or e.get("draft_label")
-    counts = Counter(effective(e) for e in all_emails if effective(e))
+    counts = Counter(effective(e) for e in all_data if effective(e))
+    channels = Counter(e.get("channel", "email") for e in all_data)
 
-    print(f"\nTotal dataset: {len(all_emails)} emails")
-    print("Label breakdown:")
+    print(f"\nTotal dataset: {len(all_data)} entries")
+    print(f"By channel: {dict(channels)}")
+    print("By label:")
     for label, count in sorted(counts.items(), key=lambda x: -x[1]):
-        pct = count / len(all_emails) * 100
-        print(f"  {label}: {count} ({pct:.0f}%)")
+        print(f"  {label}: {count}")
 
-    print('\nRun "python train.py" to retrain with the expanded dataset.')
+    print(f'\nTo reach 100k+ SMS or fill class gaps, run: python generate_synthetic.py')
+    print('Then: python train.py')
 
 
 if __name__ == "__main__":
