@@ -86,7 +86,9 @@ class DesignClient:
     def _post(self, payload: dict, client_ip: str | None) -> dict:
         headers = {"content-type": "application/json", "accept": "application/json, text/event-stream"}
         if client_ip:
-            headers["x-forwarded-for"] = client_ip
+            # Design rate limits on X-Real-IP. Over Railway's private network no edge rewrites
+            # it, so this is the caller's address as our own limiter saw it.
+            headers["x-real-ip"] = client_ip
         req = urllib.request.Request(self.url, data=json.dumps(payload).encode(), headers=headers, method="POST")
         with urllib.request.urlopen(req, timeout=DESIGN_TIMEOUT_SECONDS) as res:
             raw = res.read().decode("utf-8")
