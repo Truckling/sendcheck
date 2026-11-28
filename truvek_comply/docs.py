@@ -15,7 +15,7 @@ TOOL_DOCS = {
     "design_get_guide": ("The guide text for one topic: where generated email breaks and how to avoid it.", "design_get_schema"),
     "design_get_schema": ("The layout JSON schema and the list of modules (header, hero, columns, footer and the rest).", "design_compile"),
     "design_extract_brand": ("Brand colours, fonts and logo candidates from the user's own https site, with warnings.", "design_compile"),
-    "design_compile": ("Email HTML for the chosen platform, a plain-text version and the lint summary.", "design_autofix or design_compile while blocked, then comply_check_message for marketing email or deliver_send_requirements for transactional"),
+    "design_compile": ("Email HTML for the chosen platform, a plain-text version and a summary of the checks.", "design_autofix or design_compile while blocked, then comply_check_message for marketing email or deliver_send_requirements for transactional"),
     "design_lint": ("Findings for existing email HTML, each with the rule, the line and the fix.", "design_autofix for fixable errors, design_lint after fixing by hand, then comply_check_message for marketing email or deliver_send_requirements for transactional"),
     "design_autofix": ("The HTML with mechanical issues fixed, what changed, and what is left to fix by hand.", "design_lint"),
     "design_explain_rule": ("Why a lint rule exists, which clients it affects and how to fix it.", "design_lint"),
@@ -28,9 +28,9 @@ TOOL_DOCS = {
 
 LOOP = [
     ("Build", "design_compile", "Describe the email as a layout. Get HTML for your platform."),
-    ("Lint", "design_lint", "Check any email HTML against 51 rendering rules."),
-    ("Check content", "comply_check_message", "Check the words against spam and privacy law."),
-    ("Send requirements", "deliver_send_requirements", "Get the headers and DNS your sender needs."),
+    ("Check the design", "design_lint", "Check any email HTML for what breaks in Outlook, Gmail, on phones and in dark mode."),
+    ("Check the words", "comply_check_message", "Check the words against spam and privacy law."),
+    ("Set up sending", "deliver_send_requirements", "Get the headers and DNS your sender needs."),
 ]
 
 
@@ -100,7 +100,7 @@ def llms_txt(tools) -> str:
     lines = [
         "# Truvek",
         "",
-        "> Tools for AI agents that send email. Build email HTML that renders in every inbox, lint it, check the content against spam and privacy law, then get the send requirements for your provider.",
+        "> Tools for AI agents that send email. Build email HTML, check it displays properly in every inbox, check the words against spam and privacy law, then set up sending.",
         "",
         "Every tool returns the same shape: verdict (pass, review, block, or info for reference tools), findings (each with rule, title, scope, line and fix) and next_tool (the tool to call next, or null at the end).",
         "",

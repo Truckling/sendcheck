@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Truvek: tools for AI agents that send email</title>
-  <meta name="description" content="One MCP endpoint for agents that send email. Build HTML that renders in every inbox, lint it, check the content against spam and privacy law, then get the send requirements for your provider.">
+  <meta name="description" content="One MCP endpoint for agents that send email. Build email HTML, check it displays properly in every inbox, check the words against spam and privacy law, then set up sending.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -74,7 +74,7 @@
     <div class="hero-grid">
       <div>
         <h1>Tools for agents that send email.</h1>
-        <p class="lede">One MCP endpoint covers the whole job. Your agent builds the email, lints it for every inbox, checks the words against spam and privacy law, then sets up the send.</p>
+        <p class="lede">One MCP endpoint covers the whole job. Your agent builds the email, checks it displays properly in every inbox, checks the words against spam and privacy law, then sets up the send.</p>
         <div class="btn-row">
           <a href="https://claude.ai/settings/integrations?url=https%3A%2F%2Ftruvek.io%2Fmcp" class="btn-primary">Add to Claude</a>
           <a href="/tools" class="btn-secondary">Tool reference</a>
@@ -98,17 +98,17 @@
               <p>A layout in, HTML out for Klaviyo, Braze, Marketing Cloud, Shopify, SendGrid or your own app.</p>
             </li>
             <li>
-              <h3>Lint</h3>
+              <h3>Check the design</h3>
               <code>design_lint</code>
-              <p>51 rules for Outlook, Gmail, mobile, dark mode and accessibility, each with the line and the fix.</p>
+              <p>51 checks for what breaks in Outlook, Gmail, on phones, in dark mode and for screen readers, each with the line and the fix.</p>
             </li>
             <li>
-              <h3>Check content</h3>
+              <h3>Check the words</h3>
               <code>comply_check_message</code>
               <p>The Spam Act, CAN-SPAM, CASL, GDPR and the TCPA: consent, sender details, unsubscribe.</p>
             </li>
             <li>
-              <h3>Send requirements</h3>
+              <h3>Set up sending</h3>
               <code>deliver_send_requirements</code>
               <p>List-Unsubscribe headers, one-click unsubscribe and DNS for Resend, SES, Postmark and others.</p>
             </li>
@@ -128,7 +128,7 @@
       <li>
         <h3>Design</h3>
         <div>
-          <p>Turns a screenshot, Figma frame or brief into email HTML that holds up in Outlook, Gmail, Apple Mail and dark mode. Lints any email HTML, including what other tools generate.</p>
+          <p>Turns a screenshot, Figma frame or brief into email HTML that holds up in Outlook, Gmail, Apple Mail and dark mode. Checks any email HTML for what will break, including emails other tools generate.</p>
           <p class="tools-line"><code>design_compile</code>, <code>design_lint</code>, <code>design_autofix</code> and five more</p>
         </div>
         <a href="/design">About Design</a>
