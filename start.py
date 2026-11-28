@@ -81,8 +81,15 @@ async def check(request: Request) -> JSONResponse:
     result = _check_message(subject, text, channel, consent=consent, sender_identified=sender_identified)
     return JSONResponse(result)
 
+# get_evidence reads a log shared by every caller of this server, so on the
+# hosted endpoint one user could read another's check records. Local installs keep it.
+mcp.remove_tool("get_evidence")
+
 try:
-    app = mcp.streamable_http_app(transport_security=transport_security)
+    from truvek_comply.limits import LimitsMiddleware
+    # Per-IP rate limit (RATE_LIMIT_PER_MIN, default 120) and 1 MB body cap on /mcp and /check.
+    # On Railway the caller's IP is read from X-Forwarded-For automatically (see limits.py).
+    app = LimitsMiddleware(mcp.streamable_http_app(transport_security=transport_security))
     print("[truvek-comply] streamable_http_app OK", flush=True)
 except Exception as e:
     print(f"[truvek-comply] ERROR creating app: {e}", flush=True)
