@@ -77,6 +77,54 @@ TIMES = [
     "9am", "10am", "11am", "12pm", "1pm", "2pm", "3pm", "4pm", "5pm", "6pm",
 ]
 
+ACCOUNT_ACTIONS = [
+    "updated", "reviewed", "changed", "refreshed", "modified", "adjusted",
+]
+
+ACCOUNT_NOUNS = [
+    "account", "profile", "details", "preferences", "settings", "plan",
+    "membership", "subscription", "billing details", "contact information",
+]
+
+UPDATE_REASONS = [
+    "based on your recent activity",
+    "following your recent request",
+    "as part of our system upgrade",
+    "due to a recent change",
+    "in line with our updated terms",
+    "as requested",
+]
+
+NOTICE_TYPES = [
+    "an important update",
+    "a notice",
+    "new information",
+    "a heads up",
+    "an update",
+    "some news",
+    "a brief note",
+    "details you should review",
+]
+
+TIMEFRAMES = [
+    "within 48 hours",
+    "shortly",
+    "within 1 business day",
+    "as soon as possible",
+    "in the next few days",
+    "by end of week",
+]
+
+REVIEW_CTAS = [
+    "Log in to review: [link]",
+    "See details here: [link]",
+    "View your account: [link]",
+    "Check it out: [link]",
+    "Review now: [link]",
+    "More info: [link]",
+    "Details here: [link]",
+]
+
 UNSUBSCRIBE_SMS = [
     "Reply STOP to opt out.",
     "Txt STOP to unsubscribe.",
@@ -130,6 +178,24 @@ def date():
 def time_():
     return random.choice(TIMES)
 
+
+def account_action():
+    return random.choice(ACCOUNT_ACTIONS)
+
+def account_noun():
+    return random.choice(ACCOUNT_NOUNS)
+
+def update_reason():
+    return random.choice(UPDATE_REASONS)
+
+def notice_type():
+    return random.choice(NOTICE_TYPES)
+
+def timeframe():
+    return random.choice(TIMEFRAMES)
+
+def review_cta():
+    return random.choice(REVIEW_CTAS)
 
 def unsub_sms():
     return random.choice(UNSUBSCRIBE_SMS)
@@ -208,22 +274,43 @@ def sms_transactional_with_promotion():
 
 
 def sms_unclear():
+    b, b2 = brand(), brand()
     templates = [
-        f"[{brand()}] Your account has been updated. Log in to review your details: [link]",
-        f"{brand()}: We have an update about your {product()}. See details: [link]",
-        f"[{brand()}] Important information about your account. Please review: [link]",
-        f"{brand()}: Your preferences have been saved. View them here: [link]",
-        f"[{brand()}] We've made some changes you should know about. Read more: [link]",
-        f"{brand()}: A note about your recent activity. See details: [link]",
-        f"[{brand()}] Please review the latest update to your {product()}. [link]",
-        f"{brand()}: Action may be required on your account. Check now: [link]",
-        f"[{brand()}] Your {date()} summary is ready to view. [link]",
-        f"{brand()}: We noticed something on your account. Please check: [link]",
-        f"[{brand()}] Your request has been received. We'll be in touch shortly.",
-        f"{brand()}: Thanks for getting in touch. Someone will respond within 24 hours.",
-        f"[{brand()}] Just a heads up — things are changing on {date()}. Details: [link]",
-        f"{brand()}: Quick update on your {product()}. No action needed. [link]",
-        f"[{brand()}] Your {product()} details have been updated. Any questions? Reply here.",
+        # Account update variants
+        f"[{b}] Your {account_noun()} has been {account_action()}. {review_cta()}",
+        f"{b}: Your {account_noun()} was {account_action()} {update_reason()}. {review_cta()}",
+        f"[{b}] We've {account_action()} your {account_noun()}. Log in to see the changes: [link]",
+        f"{b}: Your {account_noun()} has been {account_action()}. Any questions? Reply to this message.",
+        # Update / notice variants
+        f"[{b}] We have {notice_type()} about your {product()}. {review_cta()}",
+        f"{b}: {notice_type().capitalize()} regarding your {account_noun()}. {review_cta()}",
+        f"[{b}] Just a heads-up — there's {notice_type()} on your account. {review_cta()}",
+        f"{b}: We wanted to share {notice_type()} with you. {review_cta()}",
+        # Activity / request variants
+        f"[{b}] Your {date()} activity summary is ready. {review_cta()}",
+        f"{b}: We noticed activity on your {account_noun()}. Please check: [link]",
+        f"[{b}] We've received your request and will follow up {timeframe()}.",
+        f"{b}: Thanks for getting in touch. We'll respond {timeframe()}.",
+        f"[{b}] Your request is being processed. We'll update you {timeframe()}.",
+        # Plan / terms variants
+        f"{b}: There are changes to your {account_noun()} {update_reason()}. {review_cta()}",
+        f"[{b}] Your {account_noun()} terms are being updated on {date()}. Details: [link]",
+        f"{b}: We're making updates to your {product()} plan. No action needed unless you disagree. [link]",
+        # Mixed / ambiguous variants
+        f"[{b}] Quick update on your {product()}. {review_cta()}",
+        f"{b}: Your {account_noun()} details have been saved. Any questions? Reply here.",
+        f"[{b}] Action may be required on your {account_noun()}. Check now: [link]",
+        f"{b}: We have something to share about your {product()}. {review_cta()}",
+        f"[{b}] Please review the latest changes to your {account_noun()}. {review_cta()}",
+        f"{b}: Your {account_noun()} is ready for review. {review_cta()}",
+        f"[{b}] Important: your {account_noun()} requires attention. {review_cta()}",
+        f"{b}: We've made improvements to your {account_noun()} {update_reason()}. {review_cta()}",
+        f"[{b}] Your {product()} has been updated. {review_cta()}",
+        f"{b}: We're reaching out about your {account_noun()}. {review_cta()}",
+        f"[{b}] Your {date()} statement is available. {review_cta()}",
+        f"{b}: There's an update waiting for you. {review_cta()}",
+        f"[{b}] Your {account_noun()} is due for review. {review_cta()}",
+        f"{b}: Heads up — your {account_noun()} settings changed {update_reason()}. {review_cta()}",
     ]
     return random.choice(templates)
 
