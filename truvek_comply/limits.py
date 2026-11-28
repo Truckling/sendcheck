@@ -1,8 +1,12 @@
 """
 limits.py - Rate limit and body size cap for the hosted server.
 
-Wraps the whole web app. Every POST to /mcp or /check counts against the
-caller's IP. Over the limit, the caller gets a 429 that says when to retry.
+Wraps the whole web app. Every request, on every path and method, counts
+against the caller's IP. Over the limit, the caller gets a 429 that says when
+to retry. The body size cap applies to requests that carry a body.
+
+The caller's IP is also stored in scope["state"]["client_ip"], so the combined
+MCP endpoint can pass it on to Truvek Design and the limit there stays per caller.
 
 Written as plain ASGI middleware (not Starlette's BaseHTTPMiddleware) so the
 MCP server's streamed responses pass straight through untouched.
@@ -13,7 +17,6 @@ import os
 import time
 from collections import defaultdict, deque
 
-LIMITED_PATHS = ("/mcp", "/check")
 WINDOW_SECONDS = 60
 
 
@@ -63,7 +66,7 @@ class LimitsMiddleware:
         return True, 0
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] != "http" or scope["method"] != "POST" or not scope["path"].startswith(LIMITED_PATHS):
+        if scope["type"] != "http":
             return await self.app(scope, receive, send)
 
         async def reply(status, payload, extra_headers=()):
@@ -71,7 +74,9 @@ class LimitsMiddleware:
             await send({"type": "http.response.start", "status": status, "headers": headers})
             await send({"type": "http.response.body", "body": body})
 
-        allowed, retry_after = self.allow(self.client_ip(scope))
+        ip = self.client_ip(scope)
+        scope.setdefault("state", {})["client_ip"] = ip
+        allowed, retry_after = self.allow(ip)
         if not allowed:
             return await reply(
                 429,

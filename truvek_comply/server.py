@@ -12,10 +12,18 @@ from mcp.types import ToolAnnotations
 from .checker import check_message as _check, classify_message as _classify
 from .evidence import record_check, get_evidence as _get_evidence
 from .rules import RULES, RULESET_VERSION, get_rule
+from .envelope import envelope, DESIGN_MCP
 
 mcp = MCPServer("truvek-comply")
 
 _read_only = ToolAnnotations(read_only_hint=True, destructive_hint=False)
+
+
+def with_next_tool(result: dict) -> dict:
+    """Add next_tool to a check result. Fix and re-check a block; otherwise move on to sending."""
+    if result["verdict"] == "block":
+        return envelope(result["verdict"], result["findings"], "check_message", **{k: v for k, v in result.items() if k not in ("verdict", "findings")})
+    return envelope(result["verdict"], result["findings"], "deliver_send_requirements", DESIGN_MCP, **{k: v for k, v in result.items() if k not in ("verdict", "findings")})
 
 
 @mcp.tool(
@@ -53,7 +61,7 @@ def check_message(
     result = _check(subject, body, channel, consent, sender_identified, jurisdiction)
     check_id = record_check(subject, body, recipient, result, campaign_id)
     result["check_id"] = check_id
-    return result
+    return with_next_tool(result)
 
 
 @mcp.tool(
@@ -67,7 +75,8 @@ def classify_message(subject: str, body: str, channel: str = "email") -> dict:
     Useful for understanding how the law will treat your message before running
     the full compliance check.
     """
-    return _classify(subject, body, channel)
+    result = _classify(subject, body, channel)
+    return envelope("info", [], "check_message", **result)
 
 
 @mcp.tool(
@@ -83,11 +92,12 @@ def explain_rule(rule_id: str) -> dict:
     """
     rule = get_rule(rule_id)
     if rule is None:
-        return {
-            "error": f"Rule '{rule_id}' not found",
-            "valid_ids": [r["id"] for r in RULES],
-        }
-    return rule
+        return envelope(
+            "info", [], "list_rules",
+            error=f"Rule '{rule_id}' not found. Call list_rules for the valid IDs.",
+            valid_ids=[r["id"] for r in RULES],
+        )
+    return envelope("info", [], "check_message", **rule)
 
 
 @mcp.tool(
@@ -101,7 +111,7 @@ def list_rules() -> dict:
     Covers Spam Act 2003 (AU), CAN-SPAM (US), CASL (CA), and GDPR/ePrivacy (EU).
     Includes rule IDs, severity levels, law sections, jurisdiction tags, and fix guidance.
     """
-    return {"ruleset_version": RULESET_VERSION, "rules": RULES}
+    return envelope("info", [], "check_message", ruleset_version=RULESET_VERSION, rules=RULES)
 
 
 @mcp.tool(

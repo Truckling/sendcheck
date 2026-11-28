@@ -123,7 +123,7 @@ def classify_message(subject: str, body: str, channel: str = "email") -> dict:
         # in a footer is not enough to reclassify a legal notice or order confirmation.
         if promotional:
             msg_type = "transactional_with_promotion"
-            reasons.append("Both transactional and promotional content found — treated as commercial.")
+            reasons.append("Both transactional and promotional content found, so it is treated as commercial.")
         else:
             msg_type = "transactional"
     elif strong_newsletter or promotional:
@@ -186,7 +186,7 @@ def check_message(
         classification = classify_message(subject, body, channel)
         if ml_result:
             classification["reasons"].append(
-                f"ML classifier confidence too low ({ml_result['confidence']:.0%}) — pattern-based used."
+                f"ML classifier confidence too low ({ml_result['confidence']:.0%}), so pattern matching was used."
             )
 
     msg_type = classification["type"]
@@ -210,6 +210,12 @@ def check_message(
         if not applies_to:
             return
         findings.append({
+            # Standard finding fields shared by every Truvek tool: rule, title, scope, line, fix.
+            "rule": rule_id,
+            "title": rule["title"],
+            "scope": ", ".join(j.upper() for j in applies_to),
+            "line": None,
+            "why": rule["description"],
             "rule_id": rule_id,
             "severity": rule["severity"],
             "section": rule["section"],
@@ -227,26 +233,26 @@ def check_message(
         if opt_in_jurisdictions and consent in ("none", "unknown"):
             add_finding(
                 "consent_missing",
-                f"consent='{consent}' — opt-in consent required for {', '.join(j.upper() for j in opt_in_jurisdictions)}.",
+                f"Consent is {consent}. Opt-in consent is required for {', '.join(j.upper() for j in opt_in_jurisdictions)}.",
             )
         elif opt_in_jurisdictions and consent == "inferred":
             add_finding(
                 "consent_inferred_risk",
-                "consent='inferred' — ACMA and CASL warn against over-reliance on implied consent.",
+                "Consent is inferred. ACMA and CASL warn against relying on implied consent.",
             )
 
         # US CAN-SPAM: opt-out model — flag as review if unknown (may have opted out)
         if "us" in active and consent in ("none", "unknown"):
             add_finding(
                 "consent_missing_us",
-                f"consent='{consent}' — confirm recipient has not previously opted out (CAN-SPAM).",
+                f"Consent is {consent}. Confirm the recipient has not opted out before (CAN-SPAM).",
             )
 
         # --- Sender identification ---
         if not sender_identified:
             add_finding(
                 "sender_missing",
-                "sender_identified=False — sender name and contact details required.",
+                "The message does not clearly name the sender. Sender name and contact details are required.",
             )
 
         # --- Physical address (US/CA) ---
@@ -269,14 +275,14 @@ def check_message(
             if _matches_any(body, LOGIN_WALL_PATTERNS):
                 add_finding(
                     "unsubscribe_login_required",
-                    "Login language found near unsubscribe text — may not be functional.",
+                    "Login wording appears near the unsubscribe text, so the opt-out may not work without signing in.",
                 )
 
         # --- Transactional with promotion ---
         if msg_type == "transactional_with_promotion":
             add_finding(
                 "transactional_with_promotion",
-                "Message classified as transactional_with_promotion — commercial rules apply.",
+                "This transactional message includes promotional content, so commercial rules apply.",
             )
 
     else:
@@ -284,7 +290,7 @@ def check_message(
         if not sender_identified:
             add_finding(
                 "sender_missing",
-                "sender_identified=False — sender details required even for transactional messages.",
+                "The message does not clearly name the sender. Sender details are required even in transactional messages.",
             )
 
     # --- SMS-specific rules ---
@@ -292,17 +298,17 @@ def check_message(
         if "au" in active:
             add_finding(
                 "sms_sender_id_unregistered",
-                "Channel is 'sms' — alphanumeric sender ID registration required from 1 Jul 2026 (AU).",
+                "Alphanumeric SMS sender IDs must be registered with ACMA from 1 July 2026.",
             )
         if "us" in active and is_commercial:
             add_finding(
                 "tcpa_sms_consent",
-                "Channel is 'sms' — TCPA requires written prior express consent for marketing SMS to US numbers.",
+                "The TCPA requires prior express written consent for marketing SMS to US numbers.",
             )
         if "eu" in active and is_commercial:
             add_finding(
                 "eu_sms_consent",
-                "Channel is 'sms' — ePrivacy Directive requires opt-in consent for marketing SMS to EU numbers.",
+                "The ePrivacy Directive requires opt-in consent for marketing SMS to EU numbers.",
             )
 
     # Verdict from most severe finding

@@ -51,11 +51,30 @@ def test_limit_is_per_ip():
     assert call(app, client="1.1.1.1")[0] == 429
 
 
-def test_get_requests_and_other_paths_not_limited():
-    app = LimitsMiddleware(ok_app, per_minute=1, trust_proxy=False)
-    for _ in range(3):
-        assert call(app, path="/", method="GET")[0] == 200
-        assert call(app, path="/health", method="GET")[0] == 200
+def test_every_path_and_method_is_limited():
+    for path, method in [("/", "GET"), ("/health", "GET"), ("/tools", "GET"), ("/llms.txt", "GET"), ("/comply/mcp", "POST"), ("/check", "POST")]:
+        app = LimitsMiddleware(ok_app, per_minute=1, trust_proxy=False)
+        assert call(app, path=path, method=method)[0] == 200
+        assert call(app, path=path, method=method)[0] == 429, path
+
+
+def test_pages_and_api_share_one_bucket_per_ip():
+    app = LimitsMiddleware(ok_app, per_minute=2, trust_proxy=False)
+    assert call(app, path="/", method="GET")[0] == 200
+    assert call(app, path="/mcp")[0] == 200
+    assert call(app, path="/check")[0] == 429
+
+
+def test_client_ip_is_recorded_for_the_app():
+    seen = {}
+
+    async def app_reads_state(scope, receive, send):
+        seen["ip"] = scope["state"]["client_ip"]
+        await ok_app(scope, receive, send)
+
+    app = LimitsMiddleware(app_reads_state, per_minute=5, trust_proxy=True)
+    call(app, headers=[(b"x-forwarded-for", b"6.6.6.6, 9.9.9.9")])
+    assert seen["ip"] == "9.9.9.9"
 
 
 def test_body_over_cap_rejected():

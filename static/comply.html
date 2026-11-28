@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Truvek Comply: pre-send compliance for email and SMS</title>
+  <meta name="description" content="Checks messages against spam and privacy laws before you send. Covers Spam Act (AU), CAN-SPAM (US), CASL (CA), and GDPR (EU). Works as an MCP tool inside Claude.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --proof-white: #F6F7F5;
+      --press-navy:  #14324D;
+      --rule-slate:  #9AA6B2;
+      --rule-light:  #C9D0D6;
+      --text-muted:  #5B6B7A;
+      --magenta:     #D1286A;
+      --magenta-ink: #A31E52;
+      --yellow:      #EFC21A;
+      --yellow-ink:  #7A5F00;
+      --cyan:        #009FD6;
+      --cyan-ink:    #00749C;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--proof-white);
+      color: var(--press-navy);
+      font-family: 'Schibsted Grotesk', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    a { color: var(--cyan-ink); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    *:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.01ms !important; }
+    }
+
+    /* ---- layout ---- */
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+    @media (max-width: 600px) { .wrap { padding: 0 20px; } }
+
+    /* ---- nav ---- */
+    nav { padding: 20px 0 0; }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--rule-light);
+      padding-bottom: 20px;
+    }
+    .logo { font-weight: 700; font-size: 15px; color: var(--press-navy); }
+    .nav-inner { flex-wrap: wrap; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+    /* suite switch: same markup and styles as static/design.html */
+    .suite { display: flex; border: 1px solid var(--rule-slate); border-radius: 4px; overflow: hidden; }
+    .suite a { padding: 6px 14px; font-size: 14px; font-weight: 500; color: var(--text-muted); }
+    .suite a + a { border-left: 1px solid var(--rule-slate); }
+    .suite a:hover { color: var(--press-navy); text-decoration: none; }
+    .suite a[aria-current="page"] { background: var(--press-navy); color: var(--proof-white); }
+    .nav-links { display: flex; gap: 24px; font-size: 14px; flex-wrap: wrap; }
+    .suite-loop { background: var(--press-navy); color: var(--proof-white); border-radius: 4px; padding: 20px 24px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.7; overflow-x: auto; white-space: pre; margin-top: 20px; }
+    .suite-loop .c { color: var(--rule-slate); }
+    .nav-links a { color: var(--text-muted); }
+    .nav-links a:hover { color: var(--press-navy); text-decoration: none; }
+
+    /* ---- hero ---- */
+    .hero { padding: 48px 0 0; }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 2fr 3fr;
+      gap: 56px;
+      align-items: start;
+      border-bottom: 1px solid var(--rule-light);
+      padding-bottom: 0;
+    }
+    @media (max-width: 860px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+    }
+    /* let grid columns shrink below their content so long code lines scroll inside their box */
+    .hero-grid > * { min-width: 0; }
+
+    /* ---- hero left ---- */
+    .hero-left { padding-bottom: 48px; }
+
+    h1 {
+      font-size: 44px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 16px;
+      max-width: 420px;
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 380px;
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; }
+
+    .btn-primary {
+      display: inline-block;
+      background: var(--press-navy);
+      color: var(--proof-white);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 14px;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.12s;
+    }
+    .btn-primary:hover { opacity: 0.85; text-decoration: none; color: var(--proof-white); }
+
+    .btn-secondary {
+      display: inline-block;
+      background: transparent;
+      color: var(--press-navy);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 14px;
+      padding: 10px 18px;
+      border: 1px solid var(--rule-slate);
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 0.12s;
+    }
+    .btn-secondary:hover { border-color: var(--press-navy); text-decoration: none; color: var(--press-navy); }
+
+    .install-lines { display: flex; flex-direction: column; gap: 8px; }
+    .install-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .install-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--press-navy);
+      background: #E4E6E4;
+      padding: 5px 10px;
+      border-radius: 4px;
+      flex: 1;
+    }
+    .copy-btn {
+      font-family: inherit;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: none;
+      border: 1px solid var(--rule-light);
+      border-radius: 4px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: color 0.12s, border-color 0.12s;
+      white-space: nowrap;
+    }
+    .copy-btn:hover { color: var(--press-navy); border-color: var(--rule-slate); }
+    .copy-btn.copied { color: var(--cyan-ink); border-color: var(--cyan); }
+
+    /* ---- hero right: proof checker ---- */
+    .hero-right { padding-bottom: 24px; }
+
+    /* crop marks */
+    .proof-wrap {
+      position: relative;
+      margin: 0 16px;
+    }
+    .cm {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+    }
+    .cm-tl { top: -8px; left: -8px; border-top: 1px solid var(--rule-slate); border-left: 1px solid var(--rule-slate); }
+    .cm-tr { top: -8px; right: -8px; border-top: 1px solid var(--rule-slate); border-right: 1px solid var(--rule-slate); }
+    .cm-bl { bottom: -8px; left: -8px; border-bottom: 1px solid var(--rule-slate); border-left: 1px solid var(--rule-slate); }
+    .cm-br { bottom: -8px; right: -8px; border-bottom: 1px solid var(--rule-slate); border-right: 1px solid var(--rule-slate); }
+
+    .proof-inner {
+      border: 1px solid var(--rule-light);
+      border-radius: 0;
+      background: #fff;
+      padding: 20px;
+    }
+
+    .proof-controls { display: flex; flex-direction: column; gap: 12px; }
+
+    .channel-row { display: flex; gap: 16px; }
+    .channel-opt {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 14px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .channel-opt input { accent-color: var(--press-navy); }
+
+    .field-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+
+    .proof-input, .proof-textarea {
+      width: 100%;
+      background: var(--proof-white);
+      border: 1px solid var(--rule-light);
+      border-radius: 4px;
+      color: var(--press-navy);
+      font-family: inherit;
+      font-size: 14px;
+      padding: 8px 12px;
+      outline: none;
+      transition: border-color 0.12s;
+    }
+    .proof-input:focus, .proof-textarea:focus { border-color: var(--rule-slate); }
+    .proof-textarea { min-height: 120px; resize: vertical; line-height: 1.5; }
+
+    /* paste zone */
+    .paste-zone {
+      border: 1px dashed var(--rule-light);
+      border-radius: 4px;
+      padding: 10px 12px;
+      font-size: 13px;
+      color: var(--text-muted);
+      cursor: pointer;
+      position: relative;
+      transition: border-color 0.12s;
+    }
+    .paste-zone:hover { border-color: var(--rule-slate); }
+    .paste-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .ocr-status { font-size: 12px; color: var(--text-muted); margin-top: 4px; display: none; }
+
+    .run-btn {
+      align-self: flex-start;
+      background: var(--press-navy);
+      color: var(--proof-white);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 14px;
+      padding: 9px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: opacity 0.12s;
+    }
+    .run-btn:hover { opacity: 0.85; }
+    .run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* CMY strip: under the hero proof and at the top of the footer only */
+    .cmy-strip { display: flex; height: 6px; }
+    .cmy-strip span { flex: 1; }
+    .cmy-cyan    { background: var(--cyan); }
+    .cmy-magenta { background: var(--magenta); }
+    .cmy-yellow  { background: var(--yellow); }
+    .cmy-navy    { background: var(--press-navy); }
+
+    /* findings rail */
+    .findings-rail {
+      padding: 16px 0 20px;
+      display: none;
+    }
+    .verdict-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--rule-light);
+      margin-bottom: 12px;
+    }
+    .verdict-word {
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .verdict-pass   { color: var(--cyan-ink); }
+    .verdict-review { color: var(--yellow-ink); }
+    .verdict-block  { color: var(--magenta-ink); }
+    .result-class   { font-size: 13px; color: var(--text-muted); }
+
+    .finding {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--rule-light);
+    }
+    .finding:last-child { border-bottom: none; }
+    .finding-num  { font-size: 11px; font-weight: 700; color: var(--rule-slate); margin-bottom: 3px; }
+    .finding-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+    .finding-why   { font-size: 13px; color: var(--text-muted); margin-bottom: 3px; }
+    .finding-fix   { font-size: 13px; color: var(--text-muted); }
+    .finding-fix strong { color: var(--press-navy); font-weight: 500; }
+
+    .finding-block .finding-title  { color: var(--magenta-ink); }
+    .finding-review .finding-title { color: var(--yellow-ink); }
+    .finding-info .finding-title   { color: var(--cyan-ink); }
+
+    .clear-to-send { font-size: 14px; font-weight: 700; color: var(--cyan-ink); padding: 8px 0; }
+    .check-error   { font-size: 14px; color: var(--magenta-ink); padding: 8px 0; }
+
+    .hero-note { font-size: 14px; color: var(--text-muted); margin-top: 12px; max-width: 52ch; }
+    .hero-note code { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+    .proof-label { font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+    .proof-body { font-size: 14px; color: var(--text-muted); }
+    .proof-strip { margin: 16px 16px 0; }
+    .findings-rail.sample { display: block; margin: 0 16px; }
+    .group-head { font-size: 13px; font-weight: 700; margin: 12px 0 0; color: var(--press-navy); }
+    .finding-list { list-style: none; }
+    .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; margin-top: 32px; }
+    .demo-grid .findings-rail { display: block; padding-top: 0; }
+    .rail-empty { font-size: 14px; color: var(--text-muted); border-top: 1px solid var(--rule-light); padding-top: 12px; }
+    .demo-grid > * { min-width: 0; }
+    @media (max-width: 860px) { .demo-grid { grid-template-columns: 1fr; gap: 24px; } }
+
+    /* ---- sections ---- */
+    section { padding: 56px 0; }
+    .section-wrap { border-bottom: 1px solid var(--rule-light); padding-bottom: 56px; }
+    section:last-of-type .section-wrap { border-bottom: none; }
+
+    h2 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 24px;
+    }
+    h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+
+    /* ---- laws list ---- */
+    .laws-list { width: 100%; border-collapse: collapse; font-size: 15px; }
+    .laws-list td {
+      padding: 13px 0;
+      border-bottom: 1px solid var(--rule-light);
+      vertical-align: top;
+    }
+    .laws-list tr:last-child td { border-bottom: none; }
+    .laws-list .law-name { font-weight: 500; padding-right: 32px; white-space: nowrap; }
+    .laws-list .law-region { color: var(--text-muted); padding-right: 32px; }
+    .laws-list .law-channel { color: var(--text-muted); }
+    @media (max-width: 600px) {
+      .laws-list .law-name, .laws-list .law-region { padding-right: 16px; white-space: normal; }
+    }
+
+    /* ---- rules table ---- */
+    .rules-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .rules-table th {
+      text-align: left;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      padding: 10px 12px 10px 0;
+      border-bottom: 1px solid var(--rule-light);
+    }
+    .rules-table td {
+      padding: 11px 12px 11px 0;
+      border-bottom: 1px solid var(--rule-light);
+      vertical-align: middle;
+    }
+    .rules-table tr:last-child td { border-bottom: none; }
+    .sev {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .sev-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .sev-block  .sev-dot { background: var(--magenta); }
+    .sev-block  .sev-word { color: var(--magenta-ink); font-weight: 500; }
+    .sev-review .sev-dot { background: var(--yellow); }
+    .sev-review .sev-word { color: var(--yellow-ink); font-weight: 500; }
+    .sev-info   .sev-dot { background: var(--cyan); }
+    .sev-info   .sev-word { color: var(--cyan-ink); font-weight: 500; }
+
+    /* ---- usage ---- */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 32px; }
+    @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+    .two-col p { font-size: 14px; color: var(--text-muted); line-height: 1.65; margin-top: 6px; }
+
+    .code-block {
+      background: var(--press-navy);
+      color: var(--proof-white);
+      border-radius: 4px;
+      padding: 20px 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.75;
+      overflow-x: auto;
+    }
+    .code-comment { color: var(--rule-slate); }
+
+    /* ---- api ---- */
+    .api-params { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 28px; }
+    .api-params th { text-align: left; font-weight: 500; color: var(--text-muted); font-size: 13px; padding: 0 12px 10px 0; border-bottom: 1px solid var(--rule-light); }
+    .api-params td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--rule-light); vertical-align: top; color: var(--text-muted); line-height: 1.5; }
+    .api-params td:first-child { color: var(--press-navy); font-weight: 500; white-space: nowrap; }
+    .api-params td code, .api-params th code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    .api-params tr:last-child td { border-bottom: none; }
+
+    /* ---- stakes ---- */
+    .stakes-text { font-size: 15px; color: var(--text-muted); max-width: 640px; line-height: 1.75; }
+    .stakes-text a { color: var(--cyan-ink); }
+    .disclaimer { font-size: 14px; color: var(--text-muted); margin-top: 20px; }
+
+    /* ---- footer ---- */
+    footer { padding: 0; }
+    .foot-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 24px 0;
+    }
+    .foot-copy { font-size: 13px; color: var(--text-muted); }
+    .foot-links { display: flex; gap: 20px; font-size: 13px; }
+    .foot-links a { color: var(--text-muted); }
+    .foot-links a:hover { color: var(--press-navy); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="nav-inner">
+      <div class="brand">
+        <a href="/" class="logo">Truvek</a>
+        <div class="suite" role="group" aria-label="Truvek products">
+          <a href="/comply" aria-current="page">Comply</a>
+          <a href="/design">Design</a>
+        </div>
+      </div>
+      <div class="nav-links">
+        <a href="#rules">Rules</a>
+        <a href="#try">Try it</a>
+        <a href="#api">API</a>
+        <a href="https://github.com/Truckling/truvek-comply">GitHub</a>
+        <a href="https://pypi.org/project/truvek-comply/">PyPI</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+
+      <div class="hero-left">
+        <h1>Check every email and SMS before it sends.</h1>
+        <p class="hero-sub">Checks messages against spam and privacy laws in Australia, the US, Canada and the EU. Your agent calls it over HTTP before anything goes out.</p>
+        <div class="btn-row">
+          <a href="https://claude.ai/settings/integrations?url=https%3A%2F%2Ftruvek.io%2Fcomply%2Fmcp" class="btn-primary">Add to Claude</a>
+          <a href="#try" class="btn-secondary">Try a message</a>
+        </div>
+        <div class="install-lines">
+          <div class="install-line">
+            <code class="install-code">claude mcp add --transport http truvek-comply https://truvek.io/comply/mcp</code>
+            <button class="copy-btn" data-copy="claude mcp add --transport http truvek-comply https://truvek.io/comply/mcp">Copy</button>
+          </div>
+        </div>
+        <p class="hero-note">Every Truvek tool, Design included, is on <a href="/">one endpoint</a>: <code>https://truvek.io/mcp</code>.</p>
+      </div>
+
+      <!-- right: a real check_message result as the proof -->
+      <div class="hero-right">
+        <div class="proof-wrap">
+          <span class="cm cm-tl" aria-hidden="true"></span>
+          <span class="cm cm-tr" aria-hidden="true"></span>
+          <span class="cm cm-bl" aria-hidden="true"></span>
+          <span class="cm cm-br" aria-hidden="true"></span>
+          <div class="proof-inner">
+            <p class="proof-label">Subject: Last chance to win a prize home</p>
+            <p class="proof-body">Your bonus tickets close tonight. Buy your tickets now and log in to My Account to see your entries.</p>
+          </div>
+        </div>
+        <div class="cmy-strip proof-strip" aria-hidden="true"><span class="cmy-cyan"></span><span class="cmy-magenta"></span><span class="cmy-yellow"></span><span class="cmy-navy"></span></div>
+        <div class="findings-rail sample" role="region" aria-label="Sample check result">
+          <div class="verdict-row">
+            <span class="verdict-word verdict-block">Do not send.</span>
+            <span class="result-class">Marketing, despite the My Account link</span>
+          </div>
+          <h3 class="group-head">4 block sending</h3>
+          <ul class="finding-list">
+            <li class="finding finding-block"><div class="finding-num">Finding 1, AU, CA, EU</div><div class="finding-title">Consent missing</div></li>
+            <li class="finding finding-block"><div class="finding-num">Finding 2, AU, US, CA, EU</div><div class="finding-title">Sender not identified</div></li>
+            <li class="finding finding-block"><div class="finding-num">Finding 3, US, CA</div><div class="finding-title">Postal address missing</div></li>
+            <li class="finding finding-block"><div class="finding-num">Finding 4, AU, US, CA, EU</div><div class="finding-title">Unsubscribe link missing</div></li>
+          </ul>
+          <h3 class="group-head">1 to review</h3>
+          <ul class="finding-list">
+            <li class="finding finding-review"><div class="finding-num">Finding 5, US</div><div class="finding-title">Opt-out status not confirmed</div></li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section id="laws">
+  <div class="wrap">
+    <div class="section-wrap">
+      <h2>Five laws, one check</h2>
+      <table class="laws-list" role="list">
+        <tbody>
+          <tr>
+            <td class="law-name">Spam Act 2003</td>
+            <td class="law-region">Australia</td>
+            <td class="law-channel">Email and SMS</td>
+          </tr>
+          <tr>
+            <td class="law-name">CAN-SPAM Act</td>
+            <td class="law-region">United States</td>
+            <td class="law-channel">Email</td>
+          </tr>
+          <tr>
+            <td class="law-name">TCPA</td>
+            <td class="law-region">United States</td>
+            <td class="law-channel">SMS</td>
+          </tr>
+          <tr>
+            <td class="law-name">CASL</td>
+            <td class="law-region">Canada</td>
+            <td class="law-channel">Email and SMS</td>
+          </tr>
+          <tr>
+            <td class="law-name">GDPR / ePrivacy Directive</td>
+            <td class="law-region">European Union</td>
+            <td class="law-channel">Email and SMS</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="try">
+  <div class="wrap">
+    <div class="section-wrap">
+      <h2>Try a message</h2>
+      <p class="stakes-text">Paste a message or upload an email file. This runs the same check your agent gets from <code>check_message</code>.</p>
+      <div class="demo-grid">
+        <div>
+        <div class="proof-wrap">
+          <span class="cm cm-tl" aria-hidden="true"></span>
+          <span class="cm cm-tr" aria-hidden="true"></span>
+          <span class="cm cm-bl" aria-hidden="true"></span>
+          <span class="cm cm-br" aria-hidden="true"></span>
+          <div class="proof-inner">
+            <div class="proof-controls">
+              <div class="channel-row" role="group" aria-label="Message channel">
+                <label class="channel-opt">
+                  <input type="radio" name="channel" value="email" checked> Email
+                </label>
+                <label class="channel-opt">
+                  <input type="radio" name="channel" value="sms"> SMS
+                </label>
+              </div>
+              <div id="subject-wrap">
+                <label class="field-label" for="demo-subject">Subject line</label>
+                <input type="text" id="demo-subject" class="proof-input" value="This weekend only: 20% off everything">
+              </div>
+              <div>
+                <label class="field-label" for="demo-body">Message body</label>
+                <textarea id="demo-body" class="proof-textarea">Hi,
+
+We've got some great deals this weekend that we thought you'd love.
+
+Shop now and save 20% on everything in store.
+
+The Marketing Team</textarea>
+              </div>
+              <div>
+                <label class="field-label" for="demo-consent">Consent status</label>
+                <select id="demo-consent" class="proof-input">
+                  <option value="unknown">Unknown</option>
+                  <option value="express">Express (opted in)</option>
+                  <option value="inferred">Inferred (existing customer)</option>
+                  <option value="none">None</option>
+                </select>
+              </div>
+              <div>
+                <label class="channel-opt" style="margin-top:2px">
+                  <input type="checkbox" id="demo-sender" style="accent-color:var(--press-navy)"> Sender is clearly identified in the message
+                </label>
+              </div>
+              <div>
+                <label class="field-label">Upload email file</label>
+                <div class="paste-zone" id="paste-zone" tabindex="0" role="button" aria-label="Upload an .html, .eml or .txt email file to extract text">
+                  <input type="file" accept=".html,.htm,.eml,.txt,text/html,message/rfc822,text/plain" id="file-upload" aria-hidden="true">
+                  Upload an .html, .eml or .txt file. The text is extracted automatically.
+                  <div class="ocr-status" id="ocr-status"></div>
+                </div>
+              </div>
+              <button class="run-btn" id="run-check">Run check</button>
+            </div>
+          </div>
+        </div>
+
+        </div>
+        <div class="findings-rail" id="findings-rail" aria-live="polite" role="region" aria-label="Check results"><p class="rail-empty">Run a check to see the verdict and each finding with its fix.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="rules">
+  <div class="wrap">
+    <div class="section-wrap">
+      <h2>What it checks</h2>
+      <table class="rules-table">
+        <thead>
+          <tr>
+            <th>Rule</th>
+            <th>Laws</th>
+            <th>Severity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Consent missing (opt-in required)</td><td>Spam Act, CASL, GDPR</td><td><span class="sev sev-block"><span class="sev-dot"></span><span class="sev-word">Blocks</span></span></td></tr>
+          <tr><td>No unsubscribe mechanism</td><td>All five laws</td><td><span class="sev sev-block"><span class="sev-dot"></span><span class="sev-word">Blocks</span></span></td></tr>
+          <tr><td>Physical mailing address missing</td><td>CAN-SPAM, CASL</td><td><span class="sev sev-block"><span class="sev-dot"></span><span class="sev-word">Blocks</span></span></td></tr>
+          <tr><td>Sender not identified</td><td>All five laws</td><td><span class="sev sev-block"><span class="sev-dot"></span><span class="sev-word">Blocks</span></span></td></tr>
+          <tr><td>SMS opt-in consent missing</td><td>ePrivacy (EU)</td><td><span class="sev sev-block"><span class="sev-dot"></span><span class="sev-word">Blocks</span></span></td></tr>
+          <tr><td>SMS prior written consent missing</td><td>TCPA (US)</td><td><span class="sev sev-block"><span class="sev-dot"></span><span class="sev-word">Blocks</span></span></td></tr>
+          <tr><td>Inferred or implied consent risk</td><td>Spam Act, CASL</td><td><span class="sev sev-review"><span class="sev-dot"></span><span class="sev-word">Review</span></span></td></tr>
+          <tr><td>Opt-out not confirmed</td><td>CAN-SPAM</td><td><span class="sev sev-review"><span class="sev-dot"></span><span class="sev-word">Review</span></span></td></tr>
+          <tr><td>Transactional email with promotional content</td><td>Spam Act, CAN-SPAM, CASL</td><td><span class="sev sev-review"><span class="sev-dot"></span><span class="sev-word">Review</span></span></td></tr>
+          <tr><td>Unsubscribe requires login</td><td>Spam Act, CASL, GDPR</td><td><span class="sev sev-review"><span class="sev-dot"></span><span class="sev-word">Review</span></span></td></tr>
+          <tr><td>SMS alphanumeric sender ID unregistered</td><td>ACMA (AU, from Jul 2026)</td><td><span class="sev sev-info"><span class="sev-dot"></span><span class="sev-word">Info</span></span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="usage">
+  <div class="wrap">
+    <div class="section-wrap">
+      <h2>Two ways to use it</h2>
+      <div class="two-col">
+        <div>
+          <h3>Over HTTP, from any agent</h3>
+          <p>Add the MCP server to Claude Code, Claude.ai or any MCP client. Nothing to install. Your agent calls <code style="font-family:'JetBrains Mono',monospace;font-size:13px">check_message</code> before it sends and acts on the verdict.</p>
+        </div>
+        <div>
+          <h3>Locally, from Python</h3>
+          <p>Run the same checks offline in a script or pipeline. The local server also keeps an evidence log of every check on your machine.</p>
+        </div>
+      </div>
+      <div class="code-block">
+        <span class="code-comment"># Claude Code, over HTTP</span><br>
+        claude mcp add --transport http truvek-comply https://truvek.io/comply/mcp<br>
+        <br>
+        <span class="code-comment"># Claude.ai or another MCP client: add a custom connector with this URL</span><br>
+        https://truvek.io/comply/mcp<br>
+        <br>
+        <span class="code-comment"># Local, from Python</span><br>
+        pip install truvek-comply<br>
+        claude mcp add truvek-comply truvek-comply
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="api">
+  <div class="wrap">
+    <div class="section-wrap">
+      <h2>Connect your platform</h2>
+      <div class="two-col">
+        <div>
+          <h3>HTTP API</h3>
+          <p>POST to <code style="font-family:'JetBrains Mono',monospace;font-size:13px">https://truvek.io/check</code> from any CRM, pipeline, or pre-send hook. No SDK or account needed. Returns verdict, findings by jurisdiction, and fix guidance in JSON.</p>
+        </div>
+        <div>
+          <h3>Response fields</h3>
+          <p><code style="font-family:'JetBrains Mono',monospace;font-size:13px">verdict</code> is <code style="font-family:'JetBrains Mono',monospace;font-size:13px">pass</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:13px">review</code>, or <code style="font-family:'JetBrains Mono',monospace;font-size:13px">block</code>. Gate your send on <code style="font-family:'JetBrains Mono',monospace;font-size:13px">block</code>. Queue for review on <code style="font-family:'JetBrains Mono',monospace;font-size:13px">review</code>. Each finding has a <code style="font-family:'JetBrains Mono',monospace;font-size:13px">rule</code>, a plain <code style="font-family:'JetBrains Mono',monospace;font-size:13px">title</code>, the laws it falls under as <code style="font-family:'JetBrains Mono',monospace;font-size:13px">scope</code>, and the <code style="font-family:'JetBrains Mono',monospace;font-size:13px">fix</code>. <code style="font-family:'JetBrains Mono',monospace;font-size:13px">next_tool</code> says what to call next. Same shape as every <a href="/tools">Truvek tool</a>.</p>
+        </div>
+      </div>
+      <div class="code-block"><span class="code-comment"># Request</span><br>
+curl -X POST https://truvek.io/check \<br>
+&nbsp;&nbsp;-H "Content-Type: application/json" \<br>
+&nbsp;&nbsp;-d '{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"subject": "Your order has shipped",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"body":    "Full message text here...",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"channel": "email",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"consent": "express",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"sender_identified": true<br>
+&nbsp;&nbsp;}'<br>
+<br>
+<span class="code-comment"># Response</span><br>
+{<br>
+&nbsp;&nbsp;"verdict": "pass",<br>
+&nbsp;&nbsp;"findings": [],<br>
+&nbsp;&nbsp;"next_tool": "deliver_send_requirements",<br>
+&nbsp;&nbsp;"next_tool_server": "https://design.truvek.io/mcp",<br>
+&nbsp;&nbsp;"classification": { "type": "transactional" }<br>
+}</div>
+      <table class="api-params">
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Values</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>subject</code></td><td>string</td><td>Email subject line. Leave empty for SMS.</td></tr>
+          <tr><td><code>body</code></td><td>string</td><td>Full message body, plain text.</td></tr>
+          <tr><td><code>channel</code></td><td>string</td><td><code>email</code> or <code>sms</code>. Default: <code>email</code>.</td></tr>
+          <tr><td><code>consent</code></td><td>string</td><td><code>express</code>, <code>inferred</code>, <code>none</code>, or <code>unknown</code>. Default: <code>unknown</code>.</td></tr>
+          <tr><td><code>sender_identified</code></td><td>boolean</td><td>True if the sender's name and contact details appear in the message.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="suite">
+  <div class="wrap">
+    <div class="section-wrap">
+      <h2>Pair it with Truvek Design</h2>
+      <p class="stakes-text">Comply checks what the email says. <a href="/design">Truvek Design</a> makes sure it renders in Outlook, Gmail, Apple Mail and dark mode. Connect <a href="/">the Truvek endpoint</a> and an agent builds the email, lints it until it passes, then clears it here before it sends.</p>
+<pre class="suite-loop"><span class="c"># one endpoint for every Truvek tool</span>
+claude mcp add --transport http truvek https://truvek.io/mcp
+
+<span class="c"># the loop an agent runs</span>
+design_compile(layout, dialect)           <span class="c"># repeat until the verdict is not block</span>
+comply_check_message(subject, body, consent)
+deliver_send_requirements(provider)       <span class="c"># if your app sends its own mail</span></pre>
+    </div>
+  </div>
+</section>
+
+<section id="stakes">
+  <div class="wrap">
+    <div class="section-wrap">
+      <h2>What non-compliance costs</h2>
+      <p class="stakes-text">
+        <a href="https://www.acma.gov.au/enforcement-actions" target="_blank" rel="noopener">ACMA</a> has issued fines over 7 million AUD for consent failures, and 700K AUD for transactional emails containing promotional content.
+        The FTC enforces CAN-SPAM with civil penalties of up to 53,088 USD per email (<a href="https://www.federalregister.gov/documents/2025/01/17/2025-01361/adjustments-to-civil-penalty-amounts" target="_blank" rel="noopener">Federal Register, 17 January 2025</a>, unchanged for 2026).
+        <a href="https://www.fightspam.gc.ca/eic/site/030.nsf/eng/home" target="_blank" rel="noopener">CRTC</a> enforces CASL with penalties up to 10 million CAD per violation.
+      </p>
+      <p class="disclaimer">Truvek Comply is a pre-send compliance tool, not legal advice.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <!-- CMY strip at very top of footer — second of two appearances on page -->
+  <div class="cmy-strip" aria-hidden="true">
+    <span class="cmy-cyan"></span>
+    <span class="cmy-magenta"></span>
+    <span class="cmy-yellow"></span>
+    <span class="cmy-navy"></span>
+  </div>
+  <div class="wrap">
+    <div class="foot-inner">
+      <div class="foot-copy">Truvek Comply, MIT licence.</div>
+      <div class="foot-links">
+        <a href="https://github.com/Truckling/truvek-comply">GitHub</a>
+        <a href="https://pypi.org/project/truvek-comply/">PyPI</a>
+        <a href="/comply/mcp">MCP endpoint</a>
+        <a href="/">Truvek suite</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ---- channel toggle ----
+  document.querySelectorAll('input[name="channel"]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.getElementById('subject-wrap').style.display = r.value === 'sms' ? 'none' : '';
+    });
+  });
+
+  // ---- copy buttons ----
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy);
+        btn.textContent = 'Copied';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1600);
+      } catch {}
+    });
+  });
+
+  // ---- file upload: .html, .eml, .txt -> extract text ----
+  const pasteZone  = document.getElementById('paste-zone');
+  const ocrStatus  = document.getElementById('ocr-status');
+  const bodyField  = document.getElementById('demo-body');
+  const subjectFld = document.getElementById('demo-subject');
+  const fileUpload = document.getElementById('file-upload');
+
+  function extractTextFromHtml(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('script, style, head').forEach(el => el.remove());
+    return (doc.body.innerText || doc.body.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  function decodeMimePart(text, encoding) {
+    const enc = (encoding || '').toLowerCase().trim();
+    if (enc === 'base64') {
+      try {
+        const bytes = Uint8Array.from(atob(text.replace(/\s/g, '')), c => c.charCodeAt(0));
+        return new TextDecoder('utf-8').decode(bytes);
+      } catch { return text; }
+    }
+    if (enc === 'quoted-printable') {
+      return text
+        .replace(/=\r?\n/g, '')
+        .replace(/=([0-9A-Fa-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+    }
+    return text;
+  }
+
+  function extractFromEml(raw) {
+    // Subject and From headers
+    const subjectMatch = raw.match(/^Subject:\s*(.+?)(\r?\n(?![\t ]))/im);
+    if (subjectMatch) subjectFld.value = subjectMatch[1].trim();
+    const fromMatch = raw.match(/^From:\s*(.+?)(\r?\n(?![\t ]))/im);
+    if (fromMatch && fromMatch[1].trim()) {
+      document.getElementById('demo-sender').checked = true;
+    }
+
+    // Find MIME boundary
+    const boundaryMatch = raw.match(/boundary=["']?([^"'\r\n;]+)["']?/i);
+    if (!boundaryMatch) {
+      // Simple non-MIME email — everything after the blank header line
+      const sep = raw.indexOf('\r\n\r\n') >= 0 ? '\r\n\r\n' : '\n\n';
+      return raw.slice(raw.indexOf(sep) + sep.length).trim();
+    }
+
+    const boundary = '--' + boundaryMatch[1].trim();
+    const parts = raw.split(new RegExp(boundary + '-{0,2}'));
+
+    let plainText = '';
+    let htmlText  = '';
+
+    for (const part of parts) {
+      const sep = part.indexOf('\r\n\r\n') >= 0 ? '\r\n\r\n' : '\n\n';
+      const hdrEnd = part.indexOf(sep);
+      if (hdrEnd < 0) continue;
+
+      const headers = part.slice(0, hdrEnd).toLowerCase();
+      const body    = part.slice(hdrEnd + sep.length);
+
+      const ctMatch  = headers.match(/content-type:\s*([^\r\n;]+)/);
+      const cteMatch = headers.match(/content-transfer-encoding:\s*([^\r\n]+)/);
+      const ct  = ctMatch  ? ctMatch[1].trim()  : '';
+      const cte = cteMatch ? cteMatch[1].trim() : '';
+
+      const decoded = decodeMimePart(body, cte);
+
+      if (ct.startsWith('text/plain') && !plainText) plainText = decoded.trim();
+      if (ct.startsWith('text/html')  && !htmlText)  htmlText  = decoded;
+    }
+
+    if (plainText) return plainText;
+    if (htmlText)  return extractTextFromHtml(htmlText);
+
+    // Fallback — no recognised parts
+    const sep = raw.indexOf('\r\n\r\n') >= 0 ? '\r\n\r\n' : '\n\n';
+    return raw.slice(raw.indexOf(sep) + sep.length).trim();
+  }
+
+  function handleFile(file) {
+    if (!file) return;
+    ocrStatus.style.display = 'block';
+    ocrStatus.textContent = 'Reading file...';
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const raw = e.target.result;
+      let text = '';
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.eml')) {
+        text = extractFromEml(raw);
+      } else if (name.endsWith('.html') || name.endsWith('.htm') || file.type === 'text/html') {
+        text = extractTextFromHtml(raw);
+      } else {
+        text = raw.trim();
+      }
+      if (text) {
+        bodyField.value = text;
+        ocrStatus.textContent = 'Text extracted. Running check...';
+        document.getElementById('run-check').click();
+        ocrStatus.textContent = 'Text extracted from file.';
+      } else {
+        ocrStatus.textContent = 'No text found in file. Paste the text manually.';
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  fileUpload.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+  pasteZone.addEventListener('dragover', e => { e.preventDefault(); pasteZone.style.borderColor = 'var(--rule-slate)'; });
+  pasteZone.addEventListener('dragleave', () => { pasteZone.style.borderColor = ''; });
+  pasteZone.addEventListener('drop', e => {
+    e.preventDefault();
+    pasteZone.style.borderColor = '';
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  // Findings arrive with a plain title and the reason from the server. Escape everything.
+  const esc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // ---- run check ----
+  const CLASS_WORDS = { marketing: 'Marketing', transactional: 'Transactional', transactional_with_promotion: 'Transactional with promotion', unclear: 'Unclear' };
+  const runBtn     = document.getElementById('run-check');
+  const rail       = document.getElementById('findings-rail');
+
+  runBtn.addEventListener('click', async () => {
+    const channel          = document.querySelector('input[name="channel"]:checked').value;
+    const subject          = document.getElementById('demo-subject').value.trim();
+    const body             = bodyField.value.trim();
+    const consent          = document.getElementById('demo-consent').value;
+    const sender_identified = document.getElementById('demo-sender').checked;
+
+    if (!body) {
+      rail.innerHTML = '<div class="check-error">Paste a message body first.</div>';
+      rail.style.display = 'block';
+      return;
+    }
+
+    runBtn.disabled = true;
+    runBtn.textContent = 'Checking...';
+
+    try {
+      const res  = await fetch('/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, body, channel, consent, sender_identified }),
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        rail.innerHTML = `<div class="check-error">${esc(data.error)}</div>`;
+      } else {
+        const verdict        = data.verdict || 'unknown';
+        const classification = (data.classification || {}).type || '';
+        const findings       = data.findings || [];
+
+        let html = `<div class="verdict-row">
+          <span class="verdict-word verdict-${verdict}">${{ pass: 'Clear to send.', review: 'Needs review.', block: 'Do not send.' }[verdict] || verdict}</span>
+          ${classification ? `<span class="result-class">${esc(CLASS_WORDS[classification] || classification.replace(/_/g, ' '))}</span>` : ''}
+        </div>`;
+
+        if (findings.length === 0) {
+          html += '<div class="clear-to-send">No issues found.</div>';
+        } else {
+          // Grouped by severity: block sending, to review, then information
+          let n = 0;
+          for (const [sev, head] of [['block', 'block sending'], ['review', 'to review'], ['info', 'for information']]) {
+            const group = findings.filter(f => f.severity === sev);
+            if (!group.length) continue;
+            html += `<h3 class="group-head">${group.length} ${head}</h3><ul class="finding-list">`;
+            group.forEach(f => {
+              n++;
+              html += `<li class="finding finding-${sev}">
+                <div class="finding-num">Finding ${n}${f.scope ? ', ' + esc(f.scope) : ''}</div>
+                <div class="finding-title">${esc(f.title)}</div>
+                ${f.trigger ? `<div class="finding-why">${esc(f.trigger)}</div>` : ''}
+                ${f.fix ? `<div class="finding-fix"><strong>Fix:</strong> ${esc(f.fix)}</div>` : ''}
+              </li>`;
+            });
+            html += '</ul>';
+          }
+        }
+
+        rail.innerHTML = html;
+      }
+    } catch {
+      rail.innerHTML = '<div class="check-error">Could not reach the server. Try again.</div>';
+    }
+
+    rail.style.display = 'block';
+    runBtn.disabled = false;
+    runBtn.textContent = 'Run check';
+  });
+
+  // Do not auto-run on load — user triggers the check manually.
+</script>
+</body>
+</html>
