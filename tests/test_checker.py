@@ -1,7 +1,7 @@
 # test_checker.py — Tests for message classification and compliance checking
 
 import pytest
-from sendcheck.checker import classify_message, check_message
+from truvek_comply.checker import classify_message, check_message
 
 
 # ---------------------------------------------------------------------------
@@ -34,6 +34,25 @@ class TestClassifyMessage:
             body="Your order has shipped! Also, check out our flash sale — 30% off everything.",
         )
         assert result["type"] == "transactional_with_promotion"
+
+    def test_lottery_promo_with_my_account_link_is_marketing(self):
+        """A 'My Account' nav link must not make a lottery promo transactional."""
+        result = classify_message(
+            subject="Buster, new lottery ticket will sell out soon",
+            body=(
+                "Last chance to be our first ever $100K winner. My Account. "
+                "Buy your tickets now. Spend $5 and get bonus tickets. Unsubscribe."
+            ),
+        )
+        assert result["type"] == "marketing"
+
+    def test_account_event_is_transactional(self):
+        """Something that happened to the account is still a transactional signal."""
+        result = classify_message(
+            subject="Security alert",
+            body="Your account has been locked after three failed sign-in attempts.",
+        )
+        assert result["type"] == "transactional"
 
     def test_unclear_generic_body(self):
         """A generic message with no signals should be classified as unclear."""
@@ -133,7 +152,7 @@ class TestCheckMessage:
             body=(
                 "Save 20% today! "
                 "Unsubscribe: https://example.com/unsub. "
-                "Sent by Acme Pty Ltd."
+                "Sent by Acme Pty Ltd, 1 George Street, Brisbane QLD 4000."
             ),
             consent="inferred",
             sender_identified=True,

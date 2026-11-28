@@ -2,8 +2,8 @@
 
 import json
 import pytest
-from sendcheck.evidence import record_check, get_evidence
-from sendcheck.checker import check_message
+from truvek_comply.evidence import record_check, get_evidence
+from truvek_comply.checker import check_message
 
 
 # A minimal passing result to use across tests
