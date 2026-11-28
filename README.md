@@ -1,6 +1,6 @@
 # Truvek Comply
 
-Pre-send compliance checker for email and SMS. Checks messages against four major laws before you send them — returns a verdict, findings, and fixes.
+Pre-send compliance checker for email and SMS. Checks messages against five spam and privacy laws before you send them, and returns a verdict, findings and fixes.
 
 Works as an MCP server. Add it to Claude and ask it to check your emails in plain English.
 
@@ -32,7 +32,7 @@ Works as an MCP server. Add it to Claude and ask it to check your emails in plai
 
 ## Add to Claude
 
-**Claude Desktop** — add this to your `claude_desktop_config.json`:
+**Claude Desktop:** add this to your `claude_desktop_config.json`:
 
 ```json
 {
@@ -44,7 +44,7 @@ Works as an MCP server. Add it to Claude and ask it to check your emails in plai
 }
 ```
 
-**Claude Code** — run:
+**Claude Code:** run:
 
 ```bash
 claude mcp add truvek-comply truvek-comply
@@ -70,19 +70,19 @@ Specify a jurisdiction if you know your audience:
 
 Or check all jurisdictions at once (the default):
 
-> "Check this email — our list includes US, Canadian, and Australian subscribers."
+> "Check this email. Our list includes US, Canadian, and Australian subscribers."
 
-Claude will call Truvek Comply and return a verdict — **pass**, **review**, or **block** — with findings tagged to the specific law they come from.
+Claude will call Truvek Comply and return a verdict (**pass**, **review** or **block**) with findings tagged to the specific law they come from.
 
 ## Tools
 
 | Tool | What it does |
 |------|-------------|
-| `check_message` | Full compliance check — verdict, findings tagged by law, check ID |
+| `check_message` | Full compliance check: verdict, findings tagged by law, check ID |
 | `classify_message` | Classify as marketing / transactional / transactional_with_promotion / unclear |
 | `explain_rule` | Look up a specific rule by ID |
 | `list_rules` | Return all rules with severity, jurisdiction, and fix guidance |
-| `get_evidence` | Retrieve past check records from the local evidence log |
+| `get_evidence` | Retrieve past check records from the local evidence log (local installs only, not on the hosted endpoint) |
 
 ## Parameters
 
@@ -96,8 +96,30 @@ Claude will call Truvek Comply and return a verdict — **pass**, **review**, or
 | `jurisdiction` | `au`, `us`, `ca`, `eu`, `all` | `all` |
 
 **Consent by jurisdiction:**
-- AU / CA / EU: opt-in required — `none` or `unknown` blocks the send
-- US CAN-SPAM: opt-out model — prior consent not required, but opt-outs must be honoured
+- AU / CA / EU: opt-in required, so `none` or `unknown` blocks the send
+- US CAN-SPAM: opt-out model. Prior consent not required, but opt-outs must be honoured
+
+## Hosted endpoint
+
+Remote MCP over Streamable HTTP at `https://truvek.io/mcp`, plus a JSON API at `POST https://truvek.io/check`. Both are open, rate limited to 120 requests a minute per IP, and capped at 1 MB per request. Message content is not stored.
+
+```bash
+claude mcp add --transport http truvek-comply https://truvek.io/mcp
+```
+
+## Part of the Truvek suite
+
+[Truvek Design](https://truvek.io/design) makes email HTML render in Outlook, Gmail, Apple Mail and dark mode. Comply checks what the email says. Connect both and an agent runs the whole loop:
+
+```
+design_compile(layout, dialect)        # Truvek Design: repeat until lint passes
+check_message(subject, body, consent)  # Truvek Comply
+deliver_send_requirements(provider)    # Truvek Design: if your app sends its own mail
+```
+
+```bash
+claude mcp add --transport http truvek-design https://design.truvek.io/mcp
+```
 
 ## Background
 
