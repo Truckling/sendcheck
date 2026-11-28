@@ -2,10 +2,14 @@
 download_hf_datasets.py — Download HuggingFace email/SMS datasets and merge into emails.jsonl.
 
 Freely accessible (no account needed):
-  - Harshal3467/multiclass-email-classification  (~2k emails)
-  - SetFit/enron_spam                            (~34k emails, spam/ham)
-  - Deysi/spam-detection-dataset                 (~8k emails)
-  - ucirvine/sms_spam                            (~6k SMS)
+  - Harshal3467/multiclass-email-classification                (~2k emails)
+  - SetFit/enron_spam                                          (~34k emails)
+  - Deysi/spam-detection-dataset                               (~8k emails)
+  - locuoco/the-biggest-spam-ham-phish-email-dataset-300000    (~168k emails)
+  - marketeam/Marketing-Emails                                 (~16k emails)
+  - morningstarxcdcode/adaption-synthetic-marketing-emails     (~16k emails)
+  - ucirvine/sms_spam                                          (~5k SMS)
+  - vsak/sms_spam_category                                     (~334 marketing SMS)
 
 Requires a free HuggingFace account + token:
   - jason23322/high-accuracy-email-classifier    (~12k emails)
@@ -82,6 +86,23 @@ DEYSI_MAP = {
 SMS_UCI_MAP = {
     0: "transactional",
     1: None,
+}
+
+# locuoco: 0=ham (Enron internal), 1=spam (skip), 2=phishing (skip)
+LOCUOCO_MAP = {
+    0: "unclear",
+    1: None,
+    2: None,
+}
+
+# marketeam/Marketing-Emails: single column, all marketing
+# morningstarxcdcode: 'chosen' column, all marketing (synthetic)
+
+# vsak SMS categories: advertisement=marketing SMS, phising/irrelevant=skip
+VSAK_SMS_MAP = {
+    "advertisement": "marketing",
+    "phising":       None,
+    "irrelevant":    None,
 }
 
 
@@ -231,6 +252,103 @@ def process_uci_sms(dry_run=False):
     return entries
 
 
+def process_locuoco(dry_run=False):
+    """168k ham Enron emails — mapped to 'unclear' (internal business comms)."""
+    print("\nlocuoco/the-biggest-spam-ham-phish-email-dataset-300000...")
+    ds = _load("locuoco/the-biggest-spam-ham-phish-email-dataset-300000")
+    if ds is None:
+        return []
+    print(f"  {len(ds)} rows loaded.")
+    entries, skipped, mapped = [], Counter(), Counter()
+    for row in ds:
+        label = row.get("label")
+        mapped_label = LOCUOCO_MAP.get(label)
+        if mapped_label is None:
+            skipped[str(label)] += 1
+            continue
+        body = str(row.get("text") or "")
+        mapped[mapped_label] += 1
+        if not dry_run:
+            entries.append(make_entry("locuoco", str(label), mapped_label, "", body))
+    print(f"  Mapped: {dict(mapped)}  Skipped: {dict(skipped)}")
+    return entries
+
+
+def process_marketeam(dry_run=False):
+    """16k marketing emails — single text column with subject+body."""
+    print("\nmarketeam/Marketing-Emails...")
+    ds = _load("marketeam/Marketing-Emails")
+    if ds is None:
+        return []
+    print(f"  {len(ds)} rows loaded.")
+    entries = []
+    for row in ds:
+        text = str(row.get("0") or "")
+        if not text:
+            continue
+        # Subject is usually the first line
+        lines = text.splitlines()
+        subject = ""
+        body = text
+        if lines and lines[0].lower().startswith("subject:"):
+            subject = lines[0][8:].strip()
+            body = "\n".join(lines[1:]).strip()
+        if not dry_run:
+            entries.append(make_entry("marketeam", "marketing", "marketing", subject, body))
+    mapped = len(entries)
+    print(f"  Mapped: {{'marketing': {mapped}}}")
+    return entries
+
+
+def process_morningstar(dry_run=False):
+    """16k synthetic marketing emails — use the 'chosen' (improved) version."""
+    print("\nmorningstarxcdcode/adaption-synthetic-marketing-emails...")
+    ds = _load("morningstarxcdcode/adaption-synthetic-marketing-emails")
+    if ds is None:
+        return []
+    print(f"  {len(ds)} rows loaded.")
+    entries = []
+    for row in ds:
+        text = str(row.get("chosen") or row.get("0") or "")
+        if not text:
+            continue
+        lines = text.splitlines()
+        subject = ""
+        body = text
+        if lines and lines[0].lower().startswith("subject:"):
+            subject = lines[0][8:].strip()
+            body = "\n".join(lines[1:]).strip()
+        if not dry_run:
+            entries.append(make_entry("morningstar", "marketing", "marketing", subject, body))
+    mapped = len(entries)
+    print(f"  Mapped: {{'marketing': {mapped}}}")
+    return entries
+
+
+def process_vsak_sms(dry_run=False):
+    """334 marketing SMS — requires streaming due to disk cache limits."""
+    print("\nvsak/sms_spam_category (streaming)...")
+    try:
+        from datasets import load_dataset as _ld
+        ds = _ld("vsak/sms_spam_category", split="train", streaming=True)
+    except Exception as e:
+        print(f"  Failed: {e}")
+        return []
+    entries, skipped, mapped = [], Counter(), Counter()
+    for row in ds:
+        label = str(row.get("Spam") or "")
+        mapped_label = VSAK_SMS_MAP.get(label)
+        if mapped_label is None:
+            skipped[label] += 1
+            continue
+        body = str(row.get("Message") or "")
+        mapped[mapped_label] += 1
+        if not dry_run:
+            entries.append(make_entry("vsak_sms", label, mapped_label, "", body, channel="sms"))
+    print(f"  Mapped: {dict(mapped)}  Skipped: {dict(skipped)}")
+    return entries
+
+
 def load_existing_hf_ids():
     if not OUTPUT_FILE.exists():
         return set()
@@ -263,7 +381,11 @@ def main():
     all_entries += process_jason(args.dry_run)
     all_entries += process_enron(args.dry_run)
     all_entries += process_deysi(args.dry_run)
+    all_entries += process_locuoco(args.dry_run)
+    all_entries += process_marketeam(args.dry_run)
+    all_entries += process_morningstar(args.dry_run)
     all_entries += process_uci_sms(args.dry_run)
+    all_entries += process_vsak_sms(args.dry_run)
 
     if args.dry_run:
         total = len(all_entries)
