@@ -57,6 +57,12 @@ async def index(request: Request) -> HTMLResponse:
     with open(os.path.join(_static_dir, "index.html"), encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
+@mcp.custom_route("/design", methods=["GET"])
+async def design_page(request: Request) -> HTMLResponse:
+    # Truvek Design's product page. The Design MCP server itself runs separately at design.truvek.io
+    with open(os.path.join(_static_dir, "design.html"), encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
 @mcp.custom_route("/health", methods=["GET"])
 async def health(request: Request) -> JSONResponse:
     return JSONResponse({"status": "ok", "service": "truvek-comply"})
@@ -81,8 +87,15 @@ async def check(request: Request) -> JSONResponse:
     result = _check_message(subject, text, channel, consent=consent, sender_identified=sender_identified)
     return JSONResponse(result)
 
+# get_evidence reads a log shared by every caller of this server, so on the
+# hosted endpoint one user could read another's check records. Local installs keep it.
+mcp.remove_tool("get_evidence")
+
 try:
-    app = mcp.streamable_http_app(transport_security=transport_security)
+    from truvek_comply.limits import LimitsMiddleware
+    # Per-IP rate limit (RATE_LIMIT_PER_MIN, default 120) and 1 MB body cap on /mcp and /check.
+    # On Railway the caller's IP is read from X-Forwarded-For automatically (see limits.py).
+    app = LimitsMiddleware(mcp.streamable_http_app(transport_security=transport_security))
     print("[truvek-comply] streamable_http_app OK", flush=True)
 except Exception as e:
     print(f"[truvek-comply] ERROR creating app: {e}", flush=True)
