@@ -37,6 +37,9 @@ try:
     from truvek_comply.server import mcp
     from truvek_comply.checker import check_message as _check_message
     print("[truvek-comply] truvek_comply.server OK", flush=True)
+    from truvek_comply import ml_classifier
+    # Logged so a deploy that silently falls back to patterns is visible
+    print(f"[truvek-comply] ML model loaded: {ml_classifier._load()}", flush=True)
 except Exception as e:
     print(f"[truvek-comply] ERROR importing truvek_comply.server: {e}", flush=True)
     traceback.print_exc()

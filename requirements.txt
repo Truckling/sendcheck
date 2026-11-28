@@ -1,3 +1,5 @@
 mcp>=2.0.0
 uvicorn>=0.30.0
 starlette>=0.40.0
+# Pinned to the version that trained ml/model.pkl. Pickled models break across versions.
+scikit-learn==1.9.1
