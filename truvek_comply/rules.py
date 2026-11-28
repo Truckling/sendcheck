@@ -2,9 +2,9 @@
 # Covers: Spam Act 2003 (AU), CAN-SPAM (US), CASL (CA), GDPR/ePrivacy (EU)
 #
 # severity:
-#   "block"  — message must not be sent until this is fixed
-#   "review" — human should review before sending
-#   "info"   — informational; action may be needed depending on context
+#   "block"  - message must not be sent until this is fixed
+#   "review" - human should review before sending
+#   "info"   - informational; action may be needed depending on context
 #
 # jurisdiction:
 #   List of codes this rule applies to: "au", "us", "ca", "eu"
@@ -17,6 +17,7 @@ RULES = [
 
     {
         "id": "consent_missing",
+        "title": "Consent missing",
         "section": "s16 / s6(1) / Art.6(1)(a)",
         "act": "Spam Act 2003 (AU) / CASL (CA) / GDPR (EU)",
         "jurisdiction": ["au", "ca", "eu"],
@@ -32,11 +33,12 @@ RULES = [
     },
     {
         "id": "consent_missing_us",
+        "title": "Opt-out status not confirmed",
         "section": "15 U.S.C. § 7704",
         "act": "CAN-SPAM Act (US)",
         "jurisdiction": ["us"],
         "description": (
-            "CAN-SPAM uses an opt-out model — prior consent is not required, but you must "
+            "CAN-SPAM uses an opt-out model. Prior consent is not required, but you must "
             "honour opt-out requests promptly. Sending to someone who has opted out is a "
             "violation."
         ),
@@ -48,6 +50,7 @@ RULES = [
     },
     {
         "id": "consent_inferred_risk",
+        "title": "Relies on inferred consent",
         "section": "s16 / s10(9)",
         "act": "Spam Act 2003 (AU) / CASL (CA)",
         "jurisdiction": ["au", "ca"],
@@ -63,6 +66,7 @@ RULES = [
 
     {
         "id": "sender_missing",
+        "title": "Sender not identified",
         "section": "s17 / s6(2)(b) / s5(a)(1)",
         "act": "Spam Act 2003 (AU) / CASL (CA) / CAN-SPAM (US) / GDPR (EU)",
         "jurisdiction": ["au", "us", "ca", "eu"],
@@ -71,7 +75,7 @@ RULES = [
             "require this. CASL and GDPR also require a mailing address."
         ),
         "fix": (
-            "Include the sender's name, a working contact address, and — for US emails — "
+            "Include the sender's name, a working contact address and, for US emails, "
             "a valid physical postal address."
         ),
         "severity": "block",
@@ -81,6 +85,7 @@ RULES = [
 
     {
         "id": "physical_address_missing",
+        "title": "Postal address missing",
         "section": "s5(a)(5) / s6(2)(c)",
         "act": "CAN-SPAM Act (US) / CASL (CA)",
         "jurisdiction": ["us", "ca"],
@@ -89,7 +94,7 @@ RULES = [
             "CASL requires a mailing address. This is typically placed in the email footer."
         ),
         "fix": (
-            "Add your company's physical mailing address to the email footer — "
+            "Add your company's physical mailing address to the email footer: "
             "street address, PO Box, or registered office."
         ),
         "severity": "block",
@@ -99,6 +104,7 @@ RULES = [
 
     {
         "id": "unsubscribe_missing",
+        "title": "Unsubscribe link missing",
         "section": "s18 / s6(2)(c) / s5(a)(3)",
         "act": "Spam Act 2003 (AU) / CASL (CA) / CAN-SPAM (US) / ePrivacy (EU)",
         "jurisdiction": ["au", "us", "ca", "eu"],
@@ -114,6 +120,7 @@ RULES = [
     },
     {
         "id": "unsubscribe_login_required",
+        "title": "Unsubscribe may need a login",
         "section": "s18",
         "act": "Spam Act 2003 (AU) / ACMA guidance",
         "jurisdiction": ["au", "ca", "eu"],
@@ -129,6 +136,7 @@ RULES = [
 
     {
         "id": "transactional_with_promotion",
+        "title": "Promotion inside a transactional message",
         "section": "s6 / ACMA v Lululemon (Mar 2026)",
         "act": "Spam Act 2003 (AU) / CAN-SPAM (US) / CASL (CA)",
         "jurisdiction": ["au", "us", "ca"],
@@ -148,6 +156,7 @@ RULES = [
 
     {
         "id": "sms_sender_id_unregistered",
+        "title": "SMS sender ID must be registered",
         "section": "SMS Sender ID Register (1 Jul 2026)",
         "act": "ACMA (AU)",
         "jurisdiction": ["au"],
@@ -160,12 +169,13 @@ RULES = [
     },
     {
         "id": "tcpa_sms_consent",
+        "title": "Written consent needed for US marketing SMS",
         "section": "47 U.S.C. § 227(b)(1)(A)",
         "act": "TCPA (US)",
         "jurisdiction": ["us"],
         "description": (
             "The TCPA requires prior express written consent before sending marketing SMS "
-            "to US mobile numbers. Violations carry statutory damages of $500–$1,500 per message."
+            "to US mobile numbers. Violations carry statutory damages of $500 to $1,500 per message."
         ),
         "fix": (
             "Obtain written prior express consent (e.g. web form with clear SMS opt-in checkbox) "
@@ -175,6 +185,7 @@ RULES = [
     },
     {
         "id": "eu_sms_consent",
+        "title": "Opt-in needed for EU marketing SMS",
         "section": "Art. 13 ePrivacy Directive",
         "act": "ePrivacy Directive (EU)",
         "jurisdiction": ["eu"],
