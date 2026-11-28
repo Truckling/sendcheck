@@ -61,7 +61,17 @@
       padding-bottom: 20px;
     }
     .logo { font-weight: 700; font-size: 15px; color: var(--press-navy); }
-    .nav-links { display: flex; gap: 24px; font-size: 14px; }
+    .nav-inner { flex-wrap: wrap; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+    /* suite switch: same markup and styles as static/design.html */
+    .suite { display: flex; border: 1px solid var(--rule-slate); border-radius: 4px; overflow: hidden; }
+    .suite a { padding: 6px 14px; font-size: 14px; font-weight: 500; color: var(--text-muted); }
+    .suite a + a { border-left: 1px solid var(--rule-slate); }
+    .suite a:hover { color: var(--press-navy); text-decoration: none; }
+    .suite a[aria-current="page"] { background: var(--press-navy); color: var(--proof-white); }
+    .nav-links { display: flex; gap: 24px; font-size: 14px; flex-wrap: wrap; }
+    .suite-loop { background: var(--press-navy); color: var(--proof-white); border-radius: 4px; padding: 20px 24px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.7; overflow-x: auto; white-space: pre; margin-top: 20px; }
+    .suite-loop .c { color: var(--rule-slate); }
     .nav-links a { color: var(--text-muted); }
     .nav-links a:hover { color: var(--press-navy); text-decoration: none; }
 
@@ -78,6 +88,8 @@
     @media (max-width: 860px) {
       .hero-grid { grid-template-columns: 1fr; gap: 40px; }
     }
+    /* let grid columns shrink below their content so long code lines scroll inside their box */
+    .hero-grid > * { min-width: 0; }
 
     /* ---- hero left ---- */
     .hero-left { padding-bottom: 48px; }
@@ -328,6 +340,9 @@
     .laws-list .law-name { font-weight: 500; padding-right: 32px; white-space: nowrap; }
     .laws-list .law-region { color: var(--text-muted); padding-right: 32px; }
     .laws-list .law-channel { color: var(--text-muted); }
+    @media (max-width: 600px) {
+      .laws-list .law-name, .laws-list .law-region { padding-right: 16px; white-space: normal; }
+    }
 
     /* ---- rules table ---- */
     .rules-table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -416,7 +431,13 @@
 <nav>
   <div class="wrap">
     <div class="nav-inner">
-      <div class="logo">Truvek Comply</div>
+      <div class="brand">
+        <a href="/" class="logo">Truvek</a>
+        <div class="suite" role="group" aria-label="Truvek products">
+          <a href="/" aria-current="page">Comply</a>
+          <a href="/design">Design</a>
+        </div>
+      </div>
       <div class="nav-links">
         <a href="#rules">Rules</a>
         <a href="#usage">Usage</a>
@@ -501,7 +522,7 @@ The Marketing Team</textarea>
                 <label class="field-label">Upload email file</label>
                 <div class="paste-zone" id="paste-zone" tabindex="0" role="button" aria-label="Upload an .html, .eml or .txt email file to extract text">
                   <input type="file" accept=".html,.htm,.eml,.txt,text/html,message/rfc822,text/plain" id="file-upload" aria-hidden="true">
-                  Upload .html, .eml or .txt — text is extracted automatically
+                  Upload an .html, .eml or .txt file. The text is extracted automatically.
                   <div class="ocr-status" id="ocr-status"></div>
                 </div>
               </div>
@@ -600,7 +621,7 @@ The Marketing Team</textarea>
         </div>
       </div>
       <div class="code-block">
-        <span class="code-comment"># Claude Desktop — claude_desktop_config.json</span><br>
+        <span class="code-comment"># Claude Desktop: claude_desktop_config.json</span><br>
         {<br>
         &nbsp;&nbsp;"mcpServers": {<br>
         &nbsp;&nbsp;&nbsp;&nbsp;"truvek-comply": {<br>
@@ -659,6 +680,19 @@ curl -X POST https://truvek.io/check \<br>
           <tr><td><code>sender_identified</code></td><td>boolean</td><td>True if the sender's name and contact details appear in the message.</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+</section>
+
+<section id="suite">
+  <div class="wrap">
+    <div class="section-wrap">
+      <h2>Pair it with Truvek Design</h2>
+      <p class="stakes-text">Comply checks what the email says. <a href="/design">Truvek Design</a> makes sure it renders in Outlook, Gmail, Apple Mail and dark mode. Connect both and an agent builds the email, lints it until it passes, then clears it here before it sends.</p>
+<pre class="suite-loop"><span class="c"># the loop an agent runs</span>
+design_compile(layout, dialect)     <span class="c"># Truvek Design, repeat until lint passes</span>
+check_message(subject, body, consent)  <span class="c"># Truvek Comply</span>
+deliver_send_requirements(provider) <span class="c"># if your app sends its own mail</span></pre>
     </div>
   </div>
 </section>

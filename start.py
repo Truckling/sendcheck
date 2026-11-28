@@ -57,6 +57,12 @@ async def index(request: Request) -> HTMLResponse:
     with open(os.path.join(_static_dir, "index.html"), encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
+@mcp.custom_route("/design", methods=["GET"])
+async def design_page(request: Request) -> HTMLResponse:
+    # Truvek Design's product page. The Design MCP server itself runs separately at design.truvek.io
+    with open(os.path.join(_static_dir, "design.html"), encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
 @mcp.custom_route("/health", methods=["GET"])
 async def health(request: Request) -> JSONResponse:
     return JSONResponse({"status": "ok", "service": "truvek-comply"})

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Truvek Design: email HTML that holds up in every inbox</title>
+  <meta name="description" content="An MCP server for agents. Turns a screenshot, Figma frame or brief into email HTML that works in Outlook, Gmail, Apple Mail and dark mode, and lints any email HTML with explained findings.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --proof-white: #F6F7F5;
+      --press-navy:  #14324D;
+      --rule-slate:  #9AA6B2;
+      --rule-light:  #C9D0D6;
+      --text-muted:  #5B6B7A;
+      --magenta:     #D1286A;
+      --magenta-ink: #A31E52;
+      --yellow:      #EFC21A;
+      --yellow-ink:  #7A5F00;
+      --cyan:        #009FD6;
+      --cyan-ink:    #00749C;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--proof-white);
+      color: var(--press-navy);
+      font-family: 'Schibsted Grotesk', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+    }
+    a { color: var(--cyan-ink); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    *:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+    code, pre { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: 0.01ms !important; }
+    }
+
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+    @media (max-width: 600px) { .wrap { padding: 0 20px; } }
+
+    /* ---- nav with suite switch (same markup on the Comply page) ---- */
+    nav.site { padding: 20px 0 0; }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+      border-bottom: 1px solid var(--rule-light); padding-bottom: 20px;
+    }
+    .brand { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+    .logo { font-weight: 700; font-size: 15px; color: var(--press-navy); }
+    .suite { display: flex; border: 1px solid var(--rule-slate); border-radius: 4px; overflow: hidden; }
+    .suite a { padding: 6px 14px; font-size: 14px; font-weight: 500; color: var(--text-muted); }
+    .suite a + a { border-left: 1px solid var(--rule-slate); }
+    .suite a:hover { color: var(--press-navy); text-decoration: none; }
+    .suite a[aria-current="page"] { background: var(--press-navy); color: var(--proof-white); }
+    .nav-links { display: flex; gap: 24px; font-size: 14px; flex-wrap: wrap; }
+    .nav-links a { color: var(--text-muted); }
+    .nav-links a:hover { color: var(--press-navy); text-decoration: none; }
+
+    /* ---- type ---- */
+    h1 { font-size: 44px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 16px; max-width: 14ch; }
+    h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 12px; }
+    h3 { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+    .lede { color: var(--text-muted); max-width: 60ch; margin-bottom: 28px; }
+    @media (max-width: 600px) { h1 { font-size: 28px; } h2 { font-size: 20px; } }
+
+    section { padding: 64px 0; border-bottom: 1px solid var(--rule-light); }
+
+    /* ---- buttons ---- */
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; }
+    .btn-primary, .btn-secondary {
+      display: inline-block; font-family: inherit; font-weight: 500; font-size: 14px;
+      padding: 10px 18px; border-radius: 4px; cursor: pointer; text-decoration: none;
+    }
+    .btn-primary { background: var(--press-navy); color: var(--proof-white); border: none; transition: opacity 0.12s; }
+    .btn-primary:hover { opacity: 0.85; text-decoration: none; color: var(--proof-white); }
+    .btn-secondary { background: transparent; color: var(--press-navy); border: 1px solid var(--rule-slate); transition: border-color 0.12s; }
+    .btn-secondary:hover { border-color: var(--press-navy); text-decoration: none; color: var(--press-navy); }
+
+    .install-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .install-code { font-size: 13px; background: #fff; border: 1px solid var(--rule-light); border-radius: 4px; padding: 8px 12px; max-width: 100%; overflow-wrap: anywhere; }
+    .copy-btn { font-family: inherit; font-size: 13px; background: none; border: 1px solid var(--rule-slate); border-radius: 4px; padding: 6px 10px; color: var(--press-navy); cursor: pointer; }
+    .note { font-size: 14px; color: var(--text-muted); margin-top: 10px; }
+
+    /* ---- hero ---- */
+    .hero { padding-top: 48px; }
+    .hero-grid { display: grid; grid-template-columns: 2fr 3fr; gap: 56px; align-items: start; }
+    @media (max-width: 860px) { .hero-grid { grid-template-columns: 1fr; gap: 40px; } }
+    /* grid items default to their content's width; let them shrink so code scrolls instead of widening the page */
+    .hero-grid > *, .tools-grid > *, .suite-grid > * { min-width: 0; }
+
+    /* the proof: crop marks outside a square frame, CMY strip directly under it */
+    .proof { position: relative; margin: 14px; }
+    .proof::before, .proof::after, .proof .crop-b::before, .proof .crop-b::after {
+      content: ""; position: absolute; width: 14px; height: 14px; border-color: var(--rule-slate); border-style: solid;
+    }
+    .proof::before { top: -14px; left: -14px; border-width: 0 1px 1px 0; }
+    .proof::after { top: -14px; right: -14px; border-width: 0 0 1px 1px; }
+    .proof .crop-b::before { bottom: -14px; left: -14px; border-width: 1px 1px 0 0; }
+    .proof .crop-b::after { bottom: -14px; right: -14px; border-width: 1px 0 0 1px; }
+    .proof-frame { background: #fff; border: 1px solid var(--rule-light); }
+    .proof-part { padding: 20px 24px; }
+    .proof-part + .proof-part { border-top: 1px solid var(--rule-light); }
+    .proof-label { font-size: 14px; color: var(--text-muted); margin-bottom: 10px; }
+    .proof pre { font-size: 13px; line-height: 1.6; overflow-x: auto; white-space: pre; }
+    .verdict { font-weight: 700; font-size: 20px; margin-bottom: 4px; }
+    .verdict-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 12px; font-variant-numeric: tabular-nums; }
+
+    .cmy-strip { display: flex; height: 6px; }
+    .cmy-strip span { flex: 1; }
+    .cmy-cyan { background: var(--cyan); } .cmy-magenta { background: var(--magenta); }
+    .cmy-yellow { background: var(--yellow); } .cmy-navy { background: var(--press-navy); }
+
+    /* findings: plain rows, a pin-style dot plus a word for status */
+    .findings { list-style: none; }
+    .findings li { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; padding: 10px 0; border-top: 1px solid var(--rule-light); }
+    .findings code { font-size: 13px; }
+    .findings span { grid-column: 2; font-size: 14px; color: var(--text-muted); }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; }
+    .dot-block { background: var(--magenta); } .dot-review { background: var(--yellow); } .dot-info { background: var(--cyan); }
+    .more { font-size: 14px; color: var(--text-muted); padding-top: 10px; border-top: 1px solid var(--rule-light); }
+
+    /* ---- loop: a real sequence, so it is numbered ---- */
+    .loop { list-style: none; counter-reset: step; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
+    .loop li { counter-increment: step; border-top: 1px solid var(--rule-light); padding-top: 14px; }
+    .loop li::before { content: counter(step); display: block; font-weight: 700; margin-bottom: 8px; }
+    .loop p { font-size: 15px; color: var(--text-muted); }
+    @media (max-width: 860px) { .loop { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 520px) { .loop { grid-template-columns: 1fr; } }
+
+    /* ---- tables ---- */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; min-width: 620px; }
+    th { text-align: left; font-weight: 500; font-size: 14px; color: var(--text-muted); padding: 0 16px 10px 0; }
+    td { padding: 12px 16px 12px 0; border-top: 1px solid var(--rule-light); vertical-align: top; }
+    td code { font-size: 13px; }
+    .sev { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+    .sev .dot { margin-top: 0; }
+    .sev-block { color: var(--magenta-ink); } .sev-review { color: var(--yellow-ink); } .sev-info { color: var(--cyan-ink); }
+
+    /* ---- platforms ---- */
+    .platforms { list-style: none; }
+    .platforms li { display: grid; grid-template-columns: 1.2fr 1fr 1.6fr; gap: 16px; padding: 12px 0; border-top: 1px solid var(--rule-light); align-items: baseline; }
+    .platforms .lang { color: var(--text-muted); font-size: 15px; }
+    .platforms code { font-size: 13px; overflow-wrap: anywhere; }
+    @media (max-width: 700px) { .platforms li { grid-template-columns: 1fr; gap: 2px; } }
+
+    /* ---- tools ---- */
+    .tools-grid { display: grid; grid-template-columns: 2fr 3fr; gap: 56px; }
+    @media (max-width: 860px) { .tools-grid { grid-template-columns: 1fr; gap: 24px; } }
+    .tools { list-style: none; }
+    .tools li { display: grid; grid-template-columns: 1fr 1.3fr; gap: 16px; padding: 10px 0; border-top: 1px solid var(--rule-light); }
+    .tools code { font-size: 13px; overflow-wrap: anywhere; }
+    .tools p { font-size: 15px; color: var(--text-muted); }
+    @media (max-width: 520px) { .tools li { grid-template-columns: 1fr; gap: 2px; } }
+
+    /* ---- suite band ---- */
+    .suite-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+    @media (max-width: 860px) { .suite-grid { grid-template-columns: 1fr; gap: 24px; } }
+    .code-block { background: var(--press-navy); color: var(--proof-white); border-radius: 4px; padding: 20px 24px; font-size: 13px; line-height: 1.7; overflow-x: auto; white-space: pre; }
+    .code-block .c { color: var(--rule-slate); }
+
+    /* ---- footer ---- */
+    footer { padding-bottom: 40px; }
+    .foot-inner { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding-top: 24px; font-size: 14px; }
+    .foot-copy { color: var(--text-muted); }
+    .foot-links { display: flex; gap: 20px; flex-wrap: wrap; }
+    .foot-links a { color: var(--text-muted); }
+    .foot-links a:hover { color: var(--press-navy); }
+  </style>
+</head>
+<body>
+
+<nav class="site" aria-label="Main">
+  <div class="wrap">
+    <div class="nav-inner">
+      <div class="brand">
+        <a href="/" class="logo">Truvek</a>
+        <div class="suite" role="group" aria-label="Truvek products">
+          <a href="/">Comply</a>
+          <a href="/design" aria-current="page">Design</a>
+        </div>
+      </div>
+      <div class="nav-links">
+        <a href="#rules">Rules</a>
+        <a href="#tools">Tools</a>
+        <a href="#platforms">Platforms</a>
+        <a href="https://github.com/Truckling/truvek-design">GitHub</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <h1>Email that survives every inbox.</h1>
+        <p class="lede">Hand your agent a competitor's screenshot, a Figma frame or a brief. Truvek Design turns it into HTML that holds up in Outlook, Gmail, Apple Mail and dark mode, for whichever platform your CRM sends from.</p>
+        <div class="btn-row">
+          <a href="https://claude.ai/settings/integrations?url=https%3A%2F%2Fdesign.truvek.io%2Fmcp" class="btn-primary">Add to Claude</a>
+          <a href="https://github.com/Truckling/truvek-design" class="btn-secondary">View on GitHub</a>
+        </div>
+        <div class="install-line">
+          <code class="install-code">claude mcp add --transport http truvek-design https://design.truvek.io/mcp</code>
+          <button class="copy-btn" type="button" data-copy="claude mcp add --transport http truvek-design https://design.truvek.io/mcp">Copy</button>
+        </div>
+        <p class="note">Open endpoint with a per-IP rate limit. No account needed.</p>
+      </div>
+
+      <div>
+        <div class="proof">
+          <div class="crop-b" aria-hidden="true"></div>
+          <div class="proof-frame">
+            <div class="proof-part">
+              <h2 class="proof-label">What the agent wrote</h2>
+<pre><code>&lt;div style="display:flex"&gt;
+  &lt;svg&gt;…&lt;/svg&gt;
+  &lt;p&gt;Hi ${user.firstName}&lt;/p&gt;
+  &lt;img src="data:image/png;base64,…"&gt;
+  &lt;a href="http://localhost:3000/orders"&gt;View order&lt;/a&gt;
+&lt;/div&gt;</code></pre>
+            </div>
+            <div class="proof-part">
+              <h2 class="proof-label">What design_lint returned</h2>
+              <p class="verdict">Not sendable</p>
+              <p class="verdict-sub">7 blocking issues, plus 6 warnings</p>
+              <ul class="findings" aria-label="Blocking issues">
+                <li><i class="dot dot-block" aria-hidden="true"></i><code>css-flex-grid</code><span>Outlook for Windows renders with Word and collapses flexbox.</span></li>
+                <li><i class="dot dot-block" aria-hidden="true"></i><code>inline-svg</code><span>Gmail and Outlook drop SVG. Export a hosted PNG.</span></li>
+                <li><i class="dot dot-block" aria-hidden="true"></i><code>unrendered-template-literal</code><span>Readers will see ${user.firstName} as text.</span></li>
+                <li><i class="dot dot-block" aria-hidden="true"></i><code>img-data-uri</code><span>Gmail blocks data: images, and they push the email toward the clip limit.</span></li>
+                <li><i class="dot dot-block" aria-hidden="true"></i><code>link-relative-or-local</code><span>localhost works on your machine and nowhere else.</span></li>
+              </ul>
+              <p class="more">Also blocking: img-missing-alt, missing-unsubscribe.</p>
+            </div>
+          </div>
+          <div class="cmy-strip" aria-hidden="true"><span class="cmy-cyan"></span><span class="cmy-magenta"></span><span class="cmy-yellow"></span><span class="cmy-navy"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Screenshot in. Inbox-proof HTML out.</h2>
+    <p class="lede">Your agent reads the image. Truvek Design handles everything that breaks in inboxes. The loop runs until the lint passes, with no person in it.</p>
+    <ol class="loop">
+      <li>
+        <h3>Map the structure</h3>
+        <p>The agent splits the screenshot into bands: header, hero, product grid, columns, footer. Layout only. No competitor images, copy or marks.</p>
+      </li>
+      <li>
+        <h3>Apply your brand</h3>
+        <p>design_extract_brand pulls colours, fonts and logo from your own site and sets email-safe fallbacks.</p>
+      </li>
+      <li>
+        <h3>Build for every client</h3>
+        <p>Outlook VML buttons, ghost tables, columns that stack on phones, dark mode, preheader and a plain-text part. Every choice comes with its reason.</p>
+      </li>
+      <li>
+        <h3>Lint until it passes</h3>
+        <p>51 rules, each with a line number, the inboxes affected, why it matters and the fix. Then hand off to Comply for the legal check.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section id="rules">
+  <div class="wrap">
+    <h2>What it catches</h2>
+    <p class="lede">Tuned to the mistakes code tools make when they build a CRM. A sample of the ruleset.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Rule</th><th scope="col">What breaks</th><th scope="col">Where</th><th scope="col">Severity</th></tr></thead>
+        <tbody>
+          <tr><td><code>css-flex-grid</code></td><td>Columns collapse into one stacked mess</td><td>Outlook for Windows</td><td><span class="sev sev-block"><i class="dot dot-block" aria-hidden="true"></i>Blocks</span></td></tr>
+          <tr><td><code>gmail-clip</code></td><td>Footer and unsubscribe hidden past about 102 KB</td><td>Gmail</td><td><span class="sev sev-block"><i class="dot dot-block" aria-hidden="true"></i>Blocks</span></td></tr>
+          <tr><td><code>leaked-js-value</code></td><td>"Hi undefined", NaN or [object Object] in the copy</td><td>All inboxes</td><td><span class="sev sev-block"><i class="dot dot-block" aria-hidden="true"></i>Blocks</span></td></tr>
+          <tr><td><code>missing-unsubscribe</code></td><td>No way out of a marketing email</td><td>Spam Act, Gmail, Yahoo</td><td><span class="sev sev-block"><i class="dot dot-block" aria-hidden="true"></i>Blocks</span></td></tr>
+          <tr><td><code>low-contrast</code></td><td>Grey footers and brand buttons below WCAG AA</td><td>All readers</td><td><span class="sev sev-review"><i class="dot dot-review" aria-hidden="true"></i>Review</span></td></tr>
+          <tr><td><code>merge-no-fallback</code></td><td>"Hi ," when the field is empty</td><td>Every ESP</td><td><span class="sev sev-review"><i class="dot dot-review" aria-hidden="true"></i>Review</span></td></tr>
+          <tr><td><code>no-dark-mode-styles</code></td><td>Dark text on dark backgrounds after auto-inversion</td><td>Apple Mail, Outlook apps</td><td><span class="sev sev-info"><i class="dot dot-info" aria-hidden="true"></i>Info</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="platforms">
+  <div class="wrap">
+    <h2>Right syntax for where you send from</h2>
+    <p class="lede">Personalisation and unsubscribe tags written for each platform, so agents never hand-write AMPscript or Liquid.</p>
+    <ul class="platforms">
+      <li><h3>Your own app</h3><span class="lang">Resend, SES, Postmark, Nodemailer</span><code>render({ first_name, unsubscribe_url })</code></li>
+      <li><h3>SendGrid, Mailgun</h3><span class="lang">Handlebars</span><code>{{#if first_name}}{{first_name}}{{else}}there{{/if}}</code></li>
+      <li><h3>Salesforce Marketing Cloud</h3><span class="lang">AMPscript</span><code>%%unsub_center_url%%</code></li>
+      <li><h3>Braze</h3><span class="lang">Liquid</span><code>{{${set_user_to_unsubscribed_url}}}</code></li>
+      <li><h3>Klaviyo</h3><span class="lang">Django-style tags</span><code>{% unsubscribe_link %}</code></li>
+      <li><h3>Shopify Messaging</h3><span class="lang">Liquid</span><code>{{ unsubscribe_url }}</code></li>
+    </ul>
+  </div>
+</section>
+
+<section id="tools">
+  <div class="wrap">
+    <div class="tools-grid">
+      <div>
+        <h2>Eight tools. One loop.</h2>
+        <p class="lede">Every response is structured for a model to act on: rule ids, lines, reasons, fixes and the next tool to call. Same input, same output, every time.</p>
+        <p class="lede">Sending from your own code? deliver_send_requirements returns List-Unsubscribe headers, a one-click unsubscribe endpoint and send code for your provider.</p>
+      </div>
+      <ul class="tools">
+        <li><code>design_get_guide</code><p>How to trace a screenshot, Outlook, Gmail, dark mode</p></li>
+        <li><code>design_get_schema</code><p>Layout schema, modules and a worked example</p></li>
+        <li><code>design_extract_brand</code><p>Colours, fonts and logo from your own site</p></li>
+        <li><code>design_compile</code><p>Layout to HTML, plain text and render()</p></li>
+        <li><code>design_lint</code><p>51 explained rules for any email HTML</p></li>
+        <li><code>design_autofix</code><p>Safe mechanical fixes, the rest flagged</p></li>
+        <li><code>design_explain_rule</code><p>Full reasoning and examples per rule</p></li>
+        <li><code>deliver_send_requirements</code><p>Headers, unsubscribe endpoint, send code</p></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="suite">
+  <div class="wrap">
+    <div class="suite-grid">
+      <div>
+        <h2>Design builds it. Comply clears it.</h2>
+        <p class="lede">Design makes the email render. Comply checks the copy against the Spam Act, CAN-SPAM, TCPA, CASL and GDPR before it goes. Connect both and an agent runs the whole loop.</p>
+        <div class="btn-row">
+          <a href="/" class="btn-secondary">See Comply</a>
+        </div>
+      </div>
+<pre class="code-block"><span class="c"># connect both servers</span>
+claude mcp add --transport http truvek-design https://design.truvek.io/mcp
+claude mcp add --transport http truvek-comply https://truvek.io/mcp
+
+<span class="c"># the loop an agent runs</span>
+design_compile(layout, dialect)     <span class="c"># repeat until lint passes</span>
+check_message(subject, body, consent)
+deliver_send_requirements(provider) <span class="c"># if your app sends its own mail</span></pre>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="cmy-strip" aria-hidden="true"><span class="cmy-cyan"></span><span class="cmy-magenta"></span><span class="cmy-yellow"></span><span class="cmy-navy"></span></div>
+  <div class="wrap">
+    <div class="foot-inner">
+      <div class="foot-copy">Truvek Design. Not legal advice.</div>
+      <div class="foot-links">
+        <a href="https://github.com/Truckling/truvek-design">GitHub</a>
+        <a href="https://design.truvek.io/mcp">MCP endpoint</a>
+        <a href="/">Comply</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy);
+        btn.textContent = 'Copied';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1600);
+      } catch {}
+    });
+  });
+</script>
+</body>
+</html>
