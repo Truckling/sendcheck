@@ -10,7 +10,7 @@ from . import ml_classifier
 # --- Pattern lists ---
 
 PROMOTIONAL_PATTERNS = [
-    r'\b(sale|discount|off|save|deal|offer|promo|coupon|free shipping|limited time|act now|buy now|shop now|exclusive)\b',
+    r'\b(sales?|discounts?|off|save|savings|deals?|offers?|promos?|coupons?|specials|bargains?|free shipping|limited time|act now|buy now|shop now|exclusive|black friday|cyber monday|new arrivals?)\b',
     r'\b(% off|\$\d+ off|members only|early access|flash sale)\b',
     # Urgency and scarcity selling ("last chance", "selling fast", "sold out")
     r'\b(last chance|final days|final call|ends (soon|tonight|today)|selling fast|sell(s|ing)? out|sold out|almost gone|don.?t miss|hurry)\b',
