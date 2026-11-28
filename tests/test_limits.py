@@ -73,7 +73,7 @@ def test_client_ip_is_recorded_for_the_app():
         await ok_app(scope, receive, send)
 
     app = LimitsMiddleware(app_reads_state, per_minute=5, trust_proxy=True)
-    call(app, headers=[(b"x-forwarded-for", b"6.6.6.6, 9.9.9.9")])
+    call(app, headers=[(b"x-real-ip", b"9.9.9.9"), (b"x-forwarded-for", b"9.9.9.9, 100.64.0.1")])
     assert seen["ip"] == "9.9.9.9"
 
 
@@ -84,8 +84,17 @@ def test_body_over_cap_rejected():
     assert call(app, body=b"x" * 11, headers=[])[0] == 413
 
 
-def test_trust_proxy_uses_rightmost_forwarded_ip():
+def test_trust_proxy_keys_on_x_real_ip_not_the_changing_edge_address():
     app = LimitsMiddleware(ok_app, per_minute=1, trust_proxy=True)
-    # Caller fakes the left-hand entry each time; the proxy-added right-hand IP is what counts
-    assert call(app, headers=[(b"x-forwarded-for", b"9.9.9.1, 5.5.5.5")])[0] == 200
-    assert call(app, headers=[(b"x-forwarded-for", b"9.9.9.2, 5.5.5.5")])[0] == 429
+    # Railway's edge sets X-Real-IP to the caller; the right-most X-Forwarded-For entry is
+    # an edge address that changes per request, so it must not split the caller's limit.
+    assert call(app, headers=[(b"x-real-ip", b"5.5.5.5"), (b"x-forwarded-for", b"5.5.5.5, 152.233.0.97")])[0] == 200
+    assert call(app, headers=[(b"x-real-ip", b"5.5.5.5"), (b"x-forwarded-for", b"5.5.5.5, 152.233.0.98")])[0] == 429
+    # A different caller has its own bucket
+    assert call(app, headers=[(b"x-real-ip", b"6.6.6.6")])[0] == 200
+
+
+def test_without_trust_proxy_forwarding_headers_are_ignored():
+    app = LimitsMiddleware(ok_app, per_minute=1, trust_proxy=False)
+    assert call(app, headers=[(b"x-real-ip", b"1.1.1.1")], client="4.4.4.4")[0] == 200
+    assert call(app, headers=[(b"x-real-ip", b"2.2.2.2")], client="4.4.4.4")[0] == 429

@@ -42,11 +42,14 @@ class LimitsMiddleware:
 
     def client_ip(self, scope) -> str:
         if self.trust_proxy:
+            # Railway's edge overwrites X-Real-IP with the caller's address on every public
+            # request, replacing any copy the caller sent (checked 28 Nov 2026). The right-most
+            # X-Forwarded-For entry is not usable: it is one of many edge addresses, so keying on
+            # it spread each caller across many buckets. Inside Railway's private network there
+            # is no edge, and the only callers are our own services (the combined endpoint).
             for name, value in scope.get("headers", []):
-                if name == b"x-forwarded-for":
-                    # The right-most entry is the one our own proxy (Railway) added.
-                    # Entries further left are supplied by the caller and can be faked.
-                    return value.decode().split(",")[-1].strip()
+                if name == b"x-real-ip" and value.strip():
+                    return value.decode().strip()
         client = scope.get("client")
         return client[0] if client else "unknown"
 
