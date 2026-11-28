@@ -86,6 +86,19 @@ async def tools_page(request: Request) -> HTMLResponse:
 async def llms_txt(request: Request) -> PlainTextResponse:
     return PlainTextResponse(_docs.llms_txt(await _suite.all_tools()))
 
+# Temporary: shows the caller their own forwarding headers so the rate limiter can key on
+# the right one. Off unless DEBUG_IP_HEADERS=1. Remove once the limiter is fixed.
+@mcp.custom_route("/_ip", methods=["GET"])
+async def ip_headers(request: Request) -> JSONResponse:
+    if os.environ.get("DEBUG_IP_HEADERS") != "1":
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return JSONResponse({
+        "x_forwarded_for": request.headers.get("x-forwarded-for"),
+        "x_real_ip": request.headers.get("x-real-ip"),
+        "forwarded": request.headers.get("forwarded"),
+        "client": request.client.host if request.client else None,
+    })
+
 @mcp.custom_route("/health", methods=["GET"])
 async def health(request: Request) -> JSONResponse:
     return JSONResponse({"status": "ok", "service": "truvek-comply"})
