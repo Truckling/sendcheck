@@ -20,7 +20,7 @@ except Exception as e:
 
 try:
     from starlette.requests import Request
-    from starlette.responses import JSONResponse, HTMLResponse
+    from starlette.responses import JSONResponse, HTMLResponse, PlainTextResponse, Response
     print("[truvek-comply] starlette OK", flush=True)
 except Exception as e:
     print(f"[truvek-comply] ERROR importing starlette: {e}", flush=True)
@@ -34,7 +34,8 @@ except Exception as e:
     sys.exit(1)
 
 try:
-    from truvek_comply.server import mcp
+    from truvek_comply.server import mcp, with_next_tool as _with_next_tool
+    from truvek_comply import suite as _suite, docs as _docs
     from truvek_comply.checker import check_message as _check_message
     print("[truvek-comply] truvek_comply.server OK", flush=True)
     from truvek_comply import ml_classifier
@@ -52,16 +53,38 @@ transport_security = TransportSecuritySettings(enable_dns_rebinding_protection=F
 
 _static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 
+
+def _page(name: str) -> HTMLResponse:
+    with open(os.path.join(_static_dir, name), encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
+
 @mcp.custom_route("/", methods=["GET"])
 async def index(request: Request) -> HTMLResponse:
-    with open(os.path.join(_static_dir, "index.html"), encoding="utf-8") as f:
-        return HTMLResponse(f.read())
+    # The Truvek suite: the agent loop and one install command
+    return _page("index.html")
+
+@mcp.custom_route("/comply", methods=["GET"])
+async def comply_page(request: Request) -> HTMLResponse:
+    return _page("comply.html")
 
 @mcp.custom_route("/design", methods=["GET"])
 async def design_page(request: Request) -> HTMLResponse:
     # Truvek Design's product page. The Design MCP server itself runs separately at design.truvek.io
-    with open(os.path.join(_static_dir, "design.html"), encoding="utf-8") as f:
-        return HTMLResponse(f.read())
+    return _page("design.html")
+
+@mcp.custom_route("/truvek.css", methods=["GET"])
+async def stylesheet(request: Request) -> Response:
+    with open(os.path.join(_static_dir, "truvek.css"), encoding="utf-8") as f:
+        return Response(f.read(), media_type="text/css", headers={"cache-control": "public, max-age=3600"})
+
+@mcp.custom_route("/tools", methods=["GET"])
+async def tools_page(request: Request) -> HTMLResponse:
+    return HTMLResponse(_docs.tools_page(await _suite.all_tools()))
+
+@mcp.custom_route("/llms.txt", methods=["GET"])
+async def llms_txt(request: Request) -> PlainTextResponse:
+    return PlainTextResponse(_docs.llms_txt(await _suite.all_tools()))
 
 @mcp.custom_route("/health", methods=["GET"])
 async def health(request: Request) -> JSONResponse:
@@ -85,22 +108,41 @@ async def check(request: Request) -> JSONResponse:
     if consent not in ("express", "inferred", "none", "unknown"):
         consent = "unknown"
     result = _check_message(subject, text, channel, consent=consent, sender_identified=sender_identified)
-    return JSONResponse(result)
+    return JSONResponse(_with_next_tool(result))
 
 # get_evidence reads a log shared by every caller of this server, so on the
 # hosted endpoint one user could read another's check records. Local installs keep it.
 mcp.remove_tool("get_evidence")
 
 try:
+    from contextlib import AsyncExitStack, asynccontextmanager
+    from starlette.applications import Starlette
     from truvek_comply.limits import LimitsMiddleware
-    # Per-IP rate limit (RATE_LIMIT_PER_MIN, default 120) and 1 MB body cap on /mcp and /check.
+
+    # Two MCP endpoints in one app:
+    #   /comply/mcp  Comply only, original tool names (check_message and the rest)
+    #   /mcp         every Truvek tool: comply_* here, design_* relayed to Truvek Design
+    comply_app = mcp.streamable_http_app(streamable_http_path="/comply/mcp", transport_security=transport_security)
+    suite_app = _suite.suite_server.streamable_http_app(streamable_http_path="/mcp", transport_security=transport_security)
+
+    @asynccontextmanager
+    async def lifespan(app):
+        async with AsyncExitStack() as stack:
+            await stack.enter_async_context(comply_app.router.lifespan_context(comply_app))
+            await stack.enter_async_context(suite_app.router.lifespan_context(suite_app))
+            yield
+
+    suite_routes = [r for r in suite_app.routes if getattr(r, "path", "") == "/mcp"]
+    site = Starlette(routes=list(comply_app.routes) + suite_routes, lifespan=lifespan)
+    # Per-IP rate limit (RATE_LIMIT_PER_MIN, default 120) on every path, and a 1 MB body cap.
     # On Railway the caller's IP is read from X-Forwarded-For automatically (see limits.py).
-    app = LimitsMiddleware(mcp.streamable_http_app(transport_security=transport_security))
-    print("[truvek-comply] streamable_http_app OK", flush=True)
+    app = LimitsMiddleware(site)
+    print("[truvek-comply] streamable_http_app OK (/mcp suite, /comply/mcp)", flush=True)
 except Exception as e:
     print(f"[truvek-comply] ERROR creating app: {e}", flush=True)
     traceback.print_exc()
     sys.exit(1)
 
-print(f"[truvek-comply] Listening on 0.0.0.0:{port}", flush=True)
-uvicorn.run(app, host="0.0.0.0", port=port)
+if __name__ == "__main__":
+    print(f"[truvek-comply] Listening on 0.0.0.0:{port}", flush=True)
+    uvicorn.run(app, host="0.0.0.0", port=port)

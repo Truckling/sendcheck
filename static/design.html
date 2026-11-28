@@ -182,7 +182,7 @@
       <div class="brand">
         <a href="/" class="logo">Truvek</a>
         <div class="suite" role="group" aria-label="Truvek products">
-          <a href="/">Comply</a>
+          <a href="/comply">Comply</a>
           <a href="/design" aria-current="page">Design</a>
         </div>
       </div>
@@ -315,7 +315,7 @@
     <div class="tools-grid">
       <div>
         <h2>Eight tools. One loop.</h2>
-        <p class="lede">Every response is structured for a model to act on: rule ids, lines, reasons, fixes and the next tool to call. Same input, same output, every time.</p>
+        <p class="lede">Every response leads with a verdict, findings (rule, title, scope, line, fix) and the next tool to call. Same input, same output, every time. <a href="/tools">Full tool reference</a>.</p>
         <p class="lede">Sending from your own code? deliver_send_requirements returns List-Unsubscribe headers, a one-click unsubscribe endpoint and send code for your provider.</p>
       </div>
       <ul class="tools">
@@ -339,17 +339,16 @@
         <h2>Design builds it. Comply clears it.</h2>
         <p class="lede">Design makes the email render. Comply checks the copy against the Spam Act, CAN-SPAM, TCPA, CASL and GDPR before it goes. Connect both and an agent runs the whole loop.</p>
         <div class="btn-row">
-          <a href="/" class="btn-secondary">See Comply</a>
+          <a href="/comply" class="btn-secondary">See Comply</a>
         </div>
       </div>
-<pre class="code-block"><span class="c"># connect both servers</span>
-claude mcp add --transport http truvek-design https://design.truvek.io/mcp
-claude mcp add --transport http truvek-comply https://truvek.io/mcp
+<pre class="code-block"><span class="c"># one endpoint for every Truvek tool</span>
+claude mcp add --transport http truvek https://truvek.io/mcp
 
 <span class="c"># the loop an agent runs</span>
-design_compile(layout, dialect)     <span class="c"># repeat until lint passes</span>
-check_message(subject, body, consent)
-deliver_send_requirements(provider) <span class="c"># if your app sends its own mail</span></pre>
+design_compile(layout, dialect)           <span class="c"># repeat until the verdict is not block</span>
+comply_check_message(subject, body, consent)
+deliver_send_requirements(provider)       <span class="c"># if your app sends its own mail</span></pre>
     </div>
   </div>
 </section>
@@ -364,7 +363,8 @@ deliver_send_requirements(provider) <span class="c"># if your app sends its own 
       <div class="foot-links">
         <a href="https://github.com/Truckling/truvek-design">GitHub</a>
         <a href="https://design.truvek.io/mcp">MCP endpoint</a>
-        <a href="/">Comply</a>
+        <a href="/comply">Comply</a>
+        <a href="/">Truvek suite</a>
       </div>
     </div>
   </div>
