@@ -11,10 +11,17 @@ from . import ml_classifier
 PROMOTIONAL_PATTERNS = [
     r'\b(sale|discount|off|save|deal|offer|promo|coupon|free shipping|limited time|act now|buy now|shop now|exclusive)\b',
     r'\b(% off|\$\d+ off|members only|early access|flash sale)\b',
+    # Urgency and scarcity selling ("last chance", "selling fast", "sold out")
+    r'\b(last chance|final days|final call|ends (soon|tonight|today)|selling fast|sell(s|ing)? out|sold out|almost gone|don.?t miss|hurry)\b',
+    # Lotteries, raffles, competitions and prize draws
+    r'\b(chance to win|win (a|an|up to)\b|prize (draw|home)|bonus tickets?|buy (your )?tickets?|get your tickets?|enter (now|the draw))',
 ]
 
 TRANSACTIONAL_PATTERNS = [
-    r'\b(order|receipt|invoice|confirmation|shipping|delivery|tracking|password reset|account|your (booking|reservation|appointment))\b',
+    # "account" only counts when it describes something that happened to the
+    # account. A bare "My Account" nav link sits in almost every marketing email.
+    r'\b(order|receipt|invoice|confirmation|shipping|delivery|tracking|password reset|your (booking|reservation|appointment))\b',
+    r'\b(account (created|verified|activated|suspended|locked|closed|statement|balance)|your account (has|was|is|will))\b',
     # Legal, administrative and notice-type emails
     r'\b(notice to|legal notice|class action|group member|settlement|claimant|proceeding|tribunal|court order|opt.?out deadline)\b',
     r'\b(you (are|were) (registered|included|identified)|you have been (added|identified|included))\b',
