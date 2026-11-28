@@ -2,6 +2,7 @@
 # Classifies messages and checks them against email/SMS laws:
 #   Spam Act 2003 (AU), CAN-SPAM (US), CASL (CA), GDPR/ePrivacy (EU)
 
+import os
 import re
 from .rules import get_rule, RULESET_VERSION, rules_for_jurisdiction
 from . import ml_classifier
@@ -170,7 +171,11 @@ def check_message(
     # Below 75% the model is unreliable on out-of-distribution emails (legal
     # notices, admin messages, etc.) and pattern-based is more accurate.
     ML_CONFIDENCE_FLOOR = 0.85
-    ml_result = ml_classifier.classify(subject, body)
+    # Off unless COMPLY_ML=1. On 100 real promos from a Gmail inbox the model
+    # called 13 "transactional" at 85%+ confidence (patterns: 2), which would
+    # skip consent and unsubscribe checks. Keep it off until retrained on
+    # real marketing email.
+    ml_result = ml_classifier.classify(subject, body) if os.environ.get("COMPLY_ML") == "1" else None
     if ml_result and ml_result["confidence"] >= ML_CONFIDENCE_FLOOR:
         classification = {
             "type": ml_result["type"],
